@@ -37,7 +37,7 @@ export class Drawer {
         });
     }
 
-    drawBasic(main: Asdf, highlighted: Address): void {
+    drawBasic(main: Asdf, highlighted: Address, mode: 'normal' | 'writing'): void {
         this.ctx.textBaseline = 'top';
         this.ctx.font = `${this.lineHeight}px monospace`;
         this.ctx.fillStyle = 'white';
@@ -92,7 +92,9 @@ export class Drawer {
             this.fillText(l, new Vec2(10, 10 + k * lineSize));
         });
 
-        this.ctx.fillStyle = 'cyan';
+        this.ctx.fillStyle = mode === 'normal'
+            ? 'cyan'
+            : 'yellow';
         const high_text = asSpaces(before) + high + asSpaces(after);
         high_text.split('\n').forEach((l, k) => {
             this.fillText(l, new Vec2(10, 10 + k * lineSize));

@@ -24,6 +24,8 @@ const CONFIG = {
 // let cur_selected: SexprAddress = [];
 // let normal_mode = true;
 
+let mode: 'normal' | 'writing' = 'normal';
+
 let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32', [['const', 'dx', ['u', '-', '.5']], ['return', 'dx']]]]);
 // const cursor = new Cursor(new Address([1, 2, 0]));
 let cur_selected = new Address([1, 2, 0]);
@@ -39,55 +41,84 @@ function every_frame(cur_timestamp_millis: number) {
     const global_t = cur_timestamp_millis / 1000;
     drawer.clear();
 
-    drawer.drawBasic(asdf3, cur_selected);
+    drawer.drawBasic(asdf3, cur_selected, mode);
 
-    if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
-        // (.. [a] b ..) => (.. a [b] ..)
-        if (cur_selected.data.length > 0) {
-            cur_selected = cur_selected.nextSibling().validOrNull(asdf3) ?? cur_selected;
+    if (mode === 'normal') {
+        if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
+            // (.. [a] b ..) => (.. a [b] ..)
+            if (cur_selected.data.length > 0) {
+                cur_selected = cur_selected.nextSibling().validOrNull(asdf3) ?? cur_selected;
+            }
+        }
+        else if (input.keyboard.wasPressed(KeyCode.ArrowLeft) || input.keyboard.wasPressed(KeyCode.KeyK)) {
+            // (.. a [b] ..) => (.. [a] b ..)
+            if (cur_selected.data.length > 0) {
+                cur_selected = cur_selected.prevSibling(asdf3) ?? cur_selected;
+            }
+        }
+        else if (input.keyboard.wasPressed(KeyCode.ArrowDown) || input.keyboard.wasPressed(KeyCode.KeyL)) {
+            // [(a ..)] => ([a] ..)
+            cur_selected = cur_selected.firstChild().validOrNull(asdf3) ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.ArrowUp) || input.keyboard.wasPressed(KeyCode.KeyH)) {
+            // ([a] ..) => [(a ..)]
+            cur_selected = cur_selected.parent() ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
+            // [a] -> ([a])
+            asdf3 = asdf3.setAt(cur_selected, new Asdf([asdf3.getAt(cur_selected)!]));
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyM)) {
+            // [(a)] -> [a]
+            const stuff = asdf3.getAt(cur_selected)!;
+            if (!stuff.isLeaf() && stuff.childCount() === 1) {
+                asdf3 = asdf3.setAt(cur_selected, stuff.childAt(0)!);
+            }
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyY)) {
+            // (.. [a] ..) -> (.. a [a] ..)
+            const to_duplicate = asdf3.getAt(cur_selected)!;
+            asdf3 = asdf3.insertBefore(cur_selected, to_duplicate);
+            cur_selected = cur_selected.nextSibling();
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyD)) {
+            // (.. [a] b ..) -> (.. [b] ..)
+            // (.. a [b]) -> (.. [a])
+            // ([a]) -> [()]
+            if (cur_selected.data.length > 0) {
+                asdf3 = asdf3.deleteAt(cur_selected) ?? asdf3;
+                cur_selected = cur_selected.validFor(asdf3)
+                    ? cur_selected
+                    : cur_selected.safePrevSibling() ?? cur_selected.parent()!;
+            }
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
+            // change atom name
+            if (asdf3.getAt(cur_selected)!.isLeaf()) {
+                mode = 'writing';
+            }
         }
     }
-    else if (input.keyboard.wasPressed(KeyCode.ArrowLeft) || input.keyboard.wasPressed(KeyCode.KeyK)) {
-        // (.. a [b] ..) => (.. [a] b ..)
-        if (cur_selected.data.length > 0) {
-            cur_selected = cur_selected.prevSibling(asdf3) ?? cur_selected;
+    else if (mode === 'writing') {
+        const thing = asdf3.getAt(cur_selected)!;
+        if (!thing.isLeaf()) throw new Error('unreachable');
+        const val = thing.data;
+        if (typeof val !== 'string') throw new Error('unreachable');
+
+        if (input.keyboard.wasPressed(KeyCode.Backspace)) {
+            asdf3.setAt(cur_selected, new Asdf(val.slice(0, -1)));
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
+            mode = 'normal';
+        }
+        else {
+            if (input.keyboard.text.length > 0) {
+                asdf3 = asdf3.setAt(cur_selected, new Asdf(val + input.keyboard.text));
+            }
         }
     }
-    else if (input.keyboard.wasPressed(KeyCode.ArrowDown) || input.keyboard.wasPressed(KeyCode.KeyL)) {
-        // [(a ..)] => ([a] ..)
-        cur_selected = cur_selected.firstChild().validOrNull(asdf3) ?? cur_selected;
-    }
-    else if (input.keyboard.wasPressed(KeyCode.ArrowUp) || input.keyboard.wasPressed(KeyCode.KeyH)) {
-        // ([a] ..) => [(a ..)]
-        cur_selected = cur_selected.parent() ?? cur_selected;
-    }
-    else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
-        // [a] -> ([a])
-        asdf3 = asdf3.setAt(cur_selected, new Asdf([asdf3.getAt(cur_selected)!]));
-    }
-    else if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-        // [(a)] -> [a]
-        const stuff = asdf3.getAt(cur_selected)!;
-        if (!stuff.isLeaf() && stuff.childCount() === 1) {
-            asdf3 = asdf3.setAt(cur_selected, stuff.childAt(0)!);
-        }
-    }
-    else if (input.keyboard.wasPressed(KeyCode.KeyY)) {
-        // (.. [a] ..) -> (.. a [a] ..)
-        const to_duplicate = asdf3.getAt(cur_selected)!;
-        asdf3 = asdf3.insertBefore(cur_selected, to_duplicate);
-        cur_selected = cur_selected.nextSibling();
-    }
-    else if (input.keyboard.wasPressed(KeyCode.KeyD)) {
-        // (.. [a] b ..) -> (.. [b] ..)
-        // (.. a [b]) -> (.. [a])
-        // ([a]) -> [()]
-        if (cur_selected.data.length > 0) {
-            asdf3 = asdf3.deleteAt(cur_selected) ?? asdf3;
-            cur_selected = cur_selected.validFor(asdf3)
-                ? cur_selected
-                : cur_selected.safePrevSibling() ?? cur_selected.parent()!;
-        }
+    else {
+        const _: never = mode;
     }
 
     // drawer.mainProgram(renderAsdf(asdf3, new Address([]), cursor));
