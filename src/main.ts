@@ -106,7 +106,7 @@ function every_frame(cur_timestamp_millis: number) {
         if (typeof val !== 'string') throw new Error('unreachable');
 
         if (input.keyboard.wasPressed(KeyCode.Backspace)) {
-            asdf3.setAt(cur_selected, new Asdf(val.slice(0, -1)));
+            asdf3 = asdf3.setAt(cur_selected, new Asdf(val.slice(0, -1)));
         }
         else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
             mode = 'normal';
