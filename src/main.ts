@@ -6,6 +6,7 @@ import { mod, towards, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01
 import { initGL2, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from 'kanvas2d';
 import { Drawer } from './drawer';
 import { concatAddresses, doNil, doPair, getAtLocalAddress, isValidAddress, parentAdress, parseSexpr, randomAtom, setAtLocalAddress, Sexpr, SexprAddress } from './model';
+import { Asdf, Cursor, Address } from './wobbly_model';
 
 const input = new Input();
 const canvas = document.querySelector<HTMLCanvasElement>('#ctx_canvas')!;
@@ -15,13 +16,17 @@ const CONFIG = {
     _0_1: 0.0,
 };
 
-const gui = new GUI();
-gui.add(CONFIG, '_0_1', 0, 1).listen();
+// const gui = new GUI();
+// gui.add(CONFIG, '_0_1', 0, 1).listen();
 
-// const cur_sexpr: Sexpr = parseSexpr('(+ (3 3 . 3) 2)');
-let cur_sexpr: Sexpr = parseSexpr('()');
-let cur_selected: SexprAddress = [];
-let normal_mode = true;
+// let cur_sexpr: Sexpr = parseSexpr('(+ (* 3 3) 2)');
+// // let cur_sexpr: Sexpr = parseSexpr('()');
+// let cur_selected: SexprAddress = [];
+// let normal_mode = true;
+
+let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32', [['const', 'dx', ['u', '-', '.5']], ['return', 'dx']]]]);
+// const cursor = new Cursor(new Address([1, 2, 0]));
+let cur_selected = new Address([1, 2, 0]);
 
 let last_timestamp_millis = 0;
 // main loop; game logic lives here
@@ -34,116 +39,169 @@ function every_frame(cur_timestamp_millis: number) {
     const global_t = cur_timestamp_millis / 1000;
     drawer.clear();
 
+    drawer.drawBasic(asdf3, cur_selected);
+
+    if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
+        // (.. [a] b ..) => (.. a [b] ..)
+        if (cur_selected.data.length > 0) {
+            cur_selected = cur_selected.nextSibling().validOrNull(asdf3) ?? cur_selected;
+        }
+    }
+    else if (input.keyboard.wasPressed(KeyCode.ArrowLeft) || input.keyboard.wasPressed(KeyCode.KeyK)) {
+        // (.. a [b] ..) => (.. [a] b ..)
+        if (cur_selected.data.length > 0) {
+            cur_selected = cur_selected.prevSibling(asdf3) ?? cur_selected;
+        }
+    }
+    else if (input.keyboard.wasPressed(KeyCode.ArrowDown) || input.keyboard.wasPressed(KeyCode.KeyL)) {
+        // [(a ..)] => ([a] ..)
+        cur_selected = cur_selected.firstChild().validOrNull(asdf3) ?? cur_selected;
+    }
+    else if (input.keyboard.wasPressed(KeyCode.ArrowUp) || input.keyboard.wasPressed(KeyCode.KeyH)) {
+        // ([a] ..) => [(a ..)]
+        cur_selected = cur_selected.parent() ?? cur_selected;
+    }
+    else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
+        // [a] -> ([a])
+        asdf3 = asdf3.setAt(cur_selected, new Asdf([asdf3.getAt(cur_selected)!]));
+    }
+    else if (input.keyboard.wasPressed(KeyCode.KeyM)) {
+        // [(a)] -> [a]
+        const stuff = asdf3.getAt(cur_selected)!;
+        if (!stuff.isLeaf() && stuff.childCount() === 1) {
+            asdf3 = asdf3.setAt(cur_selected, stuff.childAt(0)!);
+        }
+    }
+    else if (input.keyboard.wasPressed(KeyCode.KeyY)) {
+        // (.. [a] ..) -> (.. a [a] ..)
+        const to_duplicate = asdf3.getAt(cur_selected)!;
+        asdf3 = asdf3.insertBefore(cur_selected, to_duplicate);
+        cur_selected = cur_selected.nextSibling();
+    }
+    else if (input.keyboard.wasPressed(KeyCode.KeyD)) {
+        // (.. [a] b ..) -> (.. [b] ..)
+        // (.. a [b]) -> (.. [a])
+        // ([a]) -> [()]
+        if (cur_selected.data.length > 0) {
+            asdf3 = asdf3.deleteAt(cur_selected) ?? asdf3;
+            cur_selected = cur_selected.validFor(asdf3)
+                ? cur_selected
+                : cur_selected.safePrevSibling() ?? cur_selected.parent()!;
+        }
+    }
+
+    // drawer.mainProgram(renderAsdf(asdf3, new Address([]), cursor));
+
     // THE THING
-    drawer.mainThing(cur_sexpr, cur_selected, normal_mode);
+    // drawer.mainThing(cur_sexpr, cur_selected, normal_mode);
 
-    if (normal_mode) {
-        if (input.keyboard.wasPressed(KeyCode.ArrowLeft)) {
-            cur_selected.push('l');
-        }
-        else if (input.keyboard.wasPressed(KeyCode.ArrowRight)) {
-            cur_selected.push('r');
-        }
-        else if (input.keyboard.wasPressed(KeyCode.ArrowUp)) {
-            cur_selected.pop();
-        }
-        // make selected thing into list
-        else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
-            // [a] -> ([a])
-            cur_sexpr = setAtLocalAddress(cur_sexpr, cur_selected,
-                doPair(getAtLocalAddress(cur_sexpr, cur_selected), doNil()));
-            cur_selected = concatAddresses(cur_selected, ['l']);
-        }
-        // append element
-        else if (input.keyboard.wasPressed(KeyCode.KeyA)) {
-            // ([a] . b) -> (a [N] . b)
-            if (cur_selected.length > 0 && at(cur_selected, -1) == 'l') {
-                const parent_address = parentAdress(cur_selected);
-                cur_sexpr = setAtLocalAddress(cur_sexpr, parent_address,
-                    doPair(getAtLocalAddress(cur_sexpr, cur_selected),
-                        doPair(randomAtom(), getAtLocalAddress(cur_sexpr, concatAddresses(parent_address, ['r'])))));
-                cur_selected = concatAddresses(parent_address, ['r', 'l']);
-            }
-        }
-        // select next element of the list
-        else if (input.keyboard.wasPressed(KeyCode.KeyJ)) {
-            // ([a] b . c) => (a [b] . c)
-            if (cur_selected.length > 0 && at(cur_selected, -1) == 'l') {
-                const new_address = concatAddresses(parentAdress(cur_selected), ['r', 'l']);
-                if (isValidAddress(cur_sexpr, new_address)) {
-                    cur_selected = new_address;
-                }
-            }
-        }
-        // select prev element of the list
-        else if (input.keyboard.wasPressed(KeyCode.KeyK)) {
-            // (a [b] . c) => ([a] b . c)
-            if (cur_selected.length > 1 && at(cur_selected, -1) == 'l') {
-                const new_address = concatAddresses(parentAdress(parentAdress(cur_selected)), ['l']);
-                if (isValidAddress(cur_sexpr, new_address)) {
-                    cur_selected = new_address;
-                }
-            }
-        }
-        // enter pair
-        else if (input.keyboard.wasPressed(KeyCode.KeyL)) {
-            // [(a . b)] => ([a] . b)
-            const new_address = concatAddresses(cur_selected, ['l']);
-            if (isValidAddress(cur_sexpr, new_address)) {
-                cur_selected = new_address;
-            }
-        }
-        // exit list
-        else if (input.keyboard.wasPressed(KeyCode.KeyH)) {
-            // (... [a] ...) => [(... a ...)]
-            if (cur_selected.length > 0) {
-                let new_address = parentAdress(cur_selected);
-                while (new_address.length > 0 && at(new_address, -1) === 'r') {
-                    new_address = parentAdress(new_address);
-                }
-                if (isValidAddress(cur_sexpr, new_address)) {
-                    cur_selected = new_address;
-                }
-            }
-        }
-        // delete thing
-        else if (input.keyboard.wasPressed(KeyCode.KeyD)) {
-            // (a . [b]) -> [a]
-            // ([a] . b) -> [b]
-            if (cur_selected.length > 0) {
-                const last = at(cur_selected, -1);
-                const other = last === 'l' ? 'r' : 'l';
-                const parent_address = parentAdress(cur_selected);
-                cur_sexpr = setAtLocalAddress(cur_sexpr, parent_address,
-                    getAtLocalAddress(cur_sexpr, concatAddresses(parent_address, [other])));
-                cur_selected = parent_address;
-            }
-        }
-        // change atom name
-        else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
-            const thing = getAtLocalAddress(cur_sexpr, cur_selected);
-            if (thing.type === 'atom') {
-                thing.value = '';
-                normal_mode = false;
-            }
-        }
-    }
-    else {
-        const thing = getAtLocalAddress(cur_sexpr, cur_selected);
-        if (thing.type !== 'atom') throw new Error('unreachable');
+    // if (normal_mode) {
+    //     if (input.keyboard.wasPressed(KeyCode.ArrowLeft)) {
+    //         cur_selected.push('l');
+    //     }
+    //     else if (input.keyboard.wasPressed(KeyCode.ArrowRight)) {
+    //         cur_selected.push('r');
+    //     }
+    //     else if (input.keyboard.wasPressed(KeyCode.ArrowUp)) {
+    //         cur_selected.pop();
+    //     }
+    //     // make selected thing into list
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
+    //         // [a] -> ([a])
+    //         cur_sexpr = setAtLocalAddress(cur_sexpr, cur_selected,
+    //             doPair(getAtLocalAddress(cur_sexpr, cur_selected), doNil()));
+    //         cur_selected = concatAddresses(cur_selected, ['l']);
+    //     }
+    //     // append element
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyA)) {
+    //         // ([a] . b) -> (a [N] . b)
+    //         if (cur_selected.length > 0 && at(cur_selected, -1) == 'l') {
+    //             const parent_address = parentAdress(cur_selected);
+    //             cur_sexpr = setAtLocalAddress(cur_sexpr, parent_address,
+    //                 doPair(getAtLocalAddress(cur_sexpr, cur_selected),
+    //                     doPair(randomAtom(), getAtLocalAddress(cur_sexpr, concatAddresses(parent_address, ['r'])))));
+    //             cur_selected = concatAddresses(parent_address, ['r', 'l']);
+    //         }
+    //     }
+    //     // select next element of the list
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyJ)) {
+    //         // ([a] b . c) => (a [b] . c)
+    //         if (cur_selected.length > 0 && at(cur_selected, -1) == 'l') {
+    //             const new_address = concatAddresses(parentAdress(cur_selected), ['r', 'l']);
+    //             if (isValidAddress(cur_sexpr, new_address)) {
+    //                 cur_selected = new_address;
+    //             }
+    //         }
+    //     }
+    //     // select prev element of the list
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyK)) {
+    //         // (a [b] . c) => ([a] b . c)
+    //         if (cur_selected.length > 1 && at(cur_selected, -1) == 'l') {
+    //             const new_address = concatAddresses(parentAdress(parentAdress(cur_selected)), ['l']);
+    //             if (isValidAddress(cur_sexpr, new_address)) {
+    //                 cur_selected = new_address;
+    //             }
+    //         }
+    //     }
+    //     // enter pair
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyL)) {
+    //         // [(a . b)] => ([a] . b)
+    //         const new_address = concatAddresses(cur_selected, ['l']);
+    //         if (isValidAddress(cur_sexpr, new_address)) {
+    //             cur_selected = new_address;
+    //         }
+    //     }
+    //     // exit list
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyH)) {
+    //         // (... [a] ...) => [(... a ...)]
+    //         if (cur_selected.length > 0) {
+    //             let new_address = parentAdress(cur_selected);
+    //             while (new_address.length > 0 && at(new_address, -1) === 'r') {
+    //                 new_address = parentAdress(new_address);
+    //             }
+    //             if (isValidAddress(cur_sexpr, new_address)) {
+    //                 cur_selected = new_address;
+    //             }
+    //         }
+    //     }
+    //     // delete thing
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyD)) {
+    //         // (a . [b]) -> [a]
+    //         // ([a] . b) -> [b]
+    //         if (cur_selected.length > 0) {
+    //             const last = at(cur_selected, -1);
+    //             const other = last === 'l' ? 'r' : 'l';
+    //             const parent_address = parentAdress(cur_selected);
+    //             cur_sexpr = setAtLocalAddress(cur_sexpr, parent_address,
+    //                 getAtLocalAddress(cur_sexpr, concatAddresses(parent_address, [other])));
+    //             cur_selected = parent_address;
+    //         }
+    //     }
+    //     // change atom name
+    //     else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
+    //         const thing = getAtLocalAddress(cur_sexpr, cur_selected);
+    //         if (thing.type === 'atom') {
+    //             thing.value = '';
+    //             normal_mode = false;
+    //         }
+    //     }
+    // }
+    // else {
+    //     const thing = getAtLocalAddress(cur_sexpr, cur_selected);
+    //     if (thing.type !== 'atom') throw new Error('unreachable');
 
-        if (input.keyboard.wasPressed(KeyCode.Backspace)) {
-            thing.value = thing.value.slice(0, -1);
-        }
-        else if (input.keyboard.wasPressed(KeyCode.Backslash)) {
-            normal_mode = true;
-        }
-        else {
-            thing.value += input.keyboard.text;
-        }
-    }
-    // (doThing stuff) -> stuff
-    // (doThing a b) -> (doThing b a)
+    //     if (input.keyboard.wasPressed(KeyCode.Backspace)) {
+    //         thing.value = thing.value.slice(0, -1);
+    //     }
+    //     else if (input.keyboard.wasPressed(KeyCode.Backslash)) {
+    //         normal_mode = true;
+    //     }
+    //     else {
+    //         thing.value += input.keyboard.text;
+    //     }
+    // }
+    // // (doThing stuff) -> stuff
+    // // (doThing a b) -> (doThing b a)
 
     animation_id = requestAnimationFrame(every_frame);
 }

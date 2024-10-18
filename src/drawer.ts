@@ -1,9 +1,10 @@
 import { Color, Transform, Vec2 } from 'kanvas2d';
-import { DefaultMap, DefaultMapExtra, assertNotNull, at, commonPrefixLen, enumerate, eqArrays, fromCount, or, replace, reversedForEach, single, zip2 } from './kommon/kommon';
+import { DefaultMap, DefaultMapExtra, assertEmpty, assertNotNull, at, commonPrefixLen, enumerate, eqArrays, fromCount, or, replace, reversedForEach, single, zip2 } from './kommon/kommon';
 import { in01, inRange, isPointInPolygon, lerp, mod, randomFloat, randomInt, remap } from './kommon/math';
 import Rand from 'rand-seed';
 import { Random } from './kommon/random';
 import { asListPlusSentinel, isNil, Sexpr, SexprAddress } from './model';
+import { Address, Asdf } from './wobbly_model';
 
 export class Drawer {
     constructor(
@@ -23,6 +24,83 @@ export class Drawer {
         this.ctx.resetTransform();
         this.ctx.fillStyle = '#333';
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    }
+
+    mainProgram(text: string): void {
+        this.ctx.textBaseline = 'top';
+        this.ctx.font = `${this.lineHeight}px monospace`;
+        this.ctx.fillStyle = 'white';
+
+        const lineSize = this.lineHeight * 1.2;
+        text.split('\n').forEach((l, k) => {
+            this.fillText(l, new Vec2(10, 10 + k * lineSize));
+        });
+    }
+
+    drawBasic(main: Asdf, highlighted: Address): void {
+        this.ctx.textBaseline = 'top';
+        this.ctx.font = `${this.lineHeight}px monospace`;
+        this.ctx.fillStyle = 'white';
+
+        const lineSize = this.lineHeight * 1.2;
+
+        // let highlighted_data: {} | null = null;
+        function asdfToText(x: Asdf, address: Address, max_columns: number, indent: number): string {
+            if (x.isLeaf()) {
+                const str = x.data;
+                if (typeof str !== 'string') throw new Error('unreachable');
+                if (highlighted.equals(address)) {
+                    return ';' + str + ';';
+                }
+                else {
+                    return str;
+                }
+            }
+            let result = '(';
+            let remaining_columns = max_columns - 1;
+            x.forEachChild((child, k) => {
+                let stuff = asdfToText(child, address.plus(k), remaining_columns, indent);
+                let cols = usedColumns(stuff) + 1;
+                if (cols > remaining_columns || stuff.includes('\n')) {
+                    result += '\n' + '\t'.repeat(indent + 1);
+                    remaining_columns = max_columns - 1;
+                    stuff = asdfToText(child, address.plus(k), remaining_columns, indent + 1);
+                    cols = usedColumns(stuff) + 1;
+                }
+                result += stuff;
+                result += (k + 1 === x.childCount()) ? '' : ' ';
+                remaining_columns -= cols;
+            });
+            result += ')';
+            if (highlighted.equals(address)) {
+                result = ';' + result + ';';
+            }
+            return result;
+        }
+
+        function usedColumns(x: string): number {
+            return Math.max(...x.replace(/;/g, '').split('\n').map(l => l.length));
+        }
+
+        const text = asdfToText(main, new Address([]), Math.floor(1.6 * this.ctx.canvas.width / this.lineHeight), 0);
+
+        const [before, high, after, ...extra] = text.split(';');
+        assertEmpty(extra);
+
+        const plain_text = before + asSpaces(high) + after;
+        plain_text.split('\n').forEach((l, k) => {
+            this.fillText(l, new Vec2(10, 10 + k * lineSize));
+        });
+
+        this.ctx.fillStyle = 'cyan';
+        const high_text = asSpaces(before) + high + asSpaces(after);
+        high_text.split('\n').forEach((l, k) => {
+            this.fillText(l, new Vec2(10, 10 + k * lineSize));
+        });
+
+        function asSpaces(x: string): string {
+            return x.replace(/[^\s]/g, ' ');
+        }
     }
 
     mainThing(expr: Sexpr, highlighted: SexprAddress, normal_mode: boolean) {
