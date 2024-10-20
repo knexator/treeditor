@@ -26,7 +26,11 @@ const CONFIG = {
 
 let mode: 'normal' | 'writing' = 'normal';
 
-let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32', [['const', 'dx', ['u', '-', '.5']], ['return', 'dx']]]]);
+// let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
+//     ['if', ['<', 'u', '0'], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]);
+let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
+    ['let', [['dx', ['-', 'u', '.5']], ['dy', ['-', 'v', '.5']]], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]);
+// [['const', 'dx', ['u', '-', '.5']], ['return', 'dx']]]]);
 // const cursor = new Cursor(new Address([1, 2, 0]));
 let cur_selected = new Address([1, 2, 0]);
 
@@ -92,6 +96,69 @@ function every_frame(cur_timestamp_millis: number) {
                     : cur_selected.safePrevSibling() ?? cur_selected.parent()!;
             }
         }
+        else if (input.keyboard.wasPressed(KeyCode.Digit1)) {
+            // [(a b ..)] -> (a [b] ..)
+            cur_selected = cur_selected.plus(1).validOrNull(asdf3) ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit2)) {
+            // [(a b c ..)] -> (a b [c] ..)
+            cur_selected = cur_selected.plus(2).validOrNull(asdf3) ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit3)) {
+            cur_selected = cur_selected.plus(3).validOrNull(asdf3) ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit4)) {
+            cur_selected = cur_selected.plus(4).validOrNull(asdf3) ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit5)) {
+            cur_selected = cur_selected.plus(5).validOrNull(asdf3) ?? cur_selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.BracketRight)) {
+            // go to variable definition
+            const my_var = asdf3.getAt(cur_selected)!;
+            if (my_var.isLeaf()) {
+                const my_var_name = my_var.data;
+                if (typeof my_var_name !== 'string') throw new Error('unreachable');
+                let maybe_address = cur_selected.parent();
+                while (maybe_address !== null) {
+                    const stuff_at_maybe = asdf3.getAt(maybe_address)!;
+                    console.log(stuff_at_maybe);
+                    if (stuff_at_maybe.childCount() >= 2
+                        && stuff_at_maybe.childAt(0)!.isAtom('let')) {
+                        const bindings = stuff_at_maybe.childAt(1)!;
+                        let result: Address | null = null;
+                        bindings.forEachChild((v, k) => {
+                            if (v.childCount() === 2 && v.childAt(0)!.isAtom(my_var_name)) {
+                                result = maybe_address!.plus(1).plus(k).plus(0);
+                                return;
+                            }
+                        });
+                        if (result !== null) {
+                            cur_selected = result;
+                            break;
+                        }
+                    }
+                    else if (stuff_at_maybe.childCount() >= 5
+                        && stuff_at_maybe.childAt(0)!.isAtom('fn')) {
+                        const params = stuff_at_maybe.childAt(2)!;
+                        let result: Address | null = null;
+                        params.forEachChild((v, k) => {
+                            if (v.childCount() === 2 && v.childAt(0)!.isAtom(my_var_name)) {
+                                result = maybe_address!.plus(2).plus(k).plus(0);
+                                return;
+                            }
+                        });
+                        if (result !== null) {
+                            cur_selected = result;
+                            break;
+                        }
+                    }
+                    maybe_address = maybe_address.parent();
+                }
+            }
+        }
+        // else if
+        // // (.. [a] ..) -> [a] (.. ..)
         else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
             // change atom name
             if (asdf3.getAt(cur_selected)!.isLeaf()) {

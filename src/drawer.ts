@@ -61,6 +61,7 @@ export class Drawer {
             x.forEachChild((child, k) => {
                 let stuff = asdfToText(child, address.plus(k), remaining_columns, indent);
                 let cols = usedColumns(stuff) + 1;
+                // if ((cols > remaining_columns || stuff.includes('\n')) && !(k == 1 && (x.childAt(0)?.isLeaf() ?? false) && x.childAt(0)!.data === 'let')) {
                 if (cols > remaining_columns || stuff.includes('\n')) {
                     result += '\n' + '\t'.repeat(indent + 1);
                     remaining_columns = max_columns - 1;

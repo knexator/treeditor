@@ -77,6 +77,12 @@ export class Asdf {
         return typeof this.data === 'string';
     }
 
+    isAtom(v: string): boolean {
+        if (!this.isLeaf()) return false;
+        if (typeof this.data !== 'string') throw new Error('unreachable');
+        return this.data === v;
+    }
+
     childAt(k: number): Asdf | null {
         if (this.isLeaf()) throw new Error('bad');
         if (typeof this.data === 'string') throw new Error('unreachable');

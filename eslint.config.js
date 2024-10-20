@@ -27,6 +27,7 @@ export default tseslint.config(
     },
     rules: {
       'no-extra-boolean-cast': 'off',
+      // 'no-constant-condition': ["error", { "checkLoops": "all" }],
       '@typescript-eslint/strict-boolean-expressions': [
         'error',
         {
