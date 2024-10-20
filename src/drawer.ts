@@ -6,6 +6,7 @@ import { Random } from './kommon/random';
 import { asListPlusSentinel, isNil, Sexpr, SexprAddress } from './model';
 import { Address, Asdf } from './wobbly_model';
 
+// TODO: pretty printing https://dspace.mit.edu/bitstream/handle/1721.1/6503/AIM-1102.pdf
 export class Drawer {
     constructor(
         public ctx: CanvasRenderingContext2D,

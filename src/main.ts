@@ -157,6 +157,18 @@ function every_frame(cur_timestamp_millis: number) {
                 }
             }
         }
+        else if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
+            const expr = asdf3.getAt(cur_selected)!;
+            // [a] -> (if [true] a void)
+            asdf3 = asdf3.setAt(cur_selected, new Asdf([new Asdf('if'), new Asdf('true'), expr, expr]));
+            cur_selected = cur_selected.plus(1);
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Equal)) {
+            // [a] -> (= a [a])
+            const expr = asdf3.getAt(cur_selected)!;
+            asdf3 = asdf3.setAt(cur_selected, new Asdf([new Asdf('='), expr, expr]));
+            cur_selected = cur_selected.plus(2);
+        }
         // else if
         // // (.. [a] ..) -> [a] (.. ..)
         else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
