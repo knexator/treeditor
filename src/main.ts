@@ -24,7 +24,7 @@ const CONFIG = {
 // let cur_selected: SexprAddress = [];
 // let normal_mode = true;
 
-let mode: 'normal' | 'writing' = 'normal';
+let mode: 'normal' | 'writing' | { main: 'for_loop_helper', sub: number, address: Address } = 'normal';
 
 // let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
 //     ['if', ['<', 'u', '0'], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]);
@@ -32,7 +32,7 @@ let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 
     ['let', [['dx', ['-', 'u', '.5']], ['dy', ['-', 'v', '.5']]], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]);
 // [['const', 'dx', ['u', '-', '.5']], ['return', 'dx']]]]);
 // const cursor = new Cursor(new Address([1, 2, 0]));
-let cur_selected = new Address([1, 2, 0]);
+let cur_selected = new Address([1, 4, 2]);
 
 let last_timestamp_millis = 0;
 // main loop; game logic lives here
@@ -45,7 +45,7 @@ function every_frame(cur_timestamp_millis: number) {
     const global_t = cur_timestamp_millis / 1000;
     drawer.clear();
 
-    drawer.drawBasic(asdf3, cur_selected, mode);
+    drawer.drawBasic(asdf3, cur_selected, typeof mode !== 'string' ? 'normal' : mode);
 
     if (mode === 'normal') {
         if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
@@ -177,6 +177,12 @@ function every_frame(cur_timestamp_millis: number) {
                 mode = 'writing';
             }
         }
+        else if (input.keyboard.wasPressed(KeyCode.KeyF)) {
+            mode = { main: 'for_loop_helper', sub: 0, address: cur_selected };
+            const expr = asdf3.getAt(cur_selected)!;
+            asdf3 = asdf3.setAt(cur_selected, new Asdf([new Asdf('for'), Asdf.fromRaw(['set!', 'i', '0']), Asdf.fromRaw(['<?', 'i', ['len', 'arr']]), Asdf.fromRaw(['+=', 'i', '1']), expr]));
+            cur_selected = cur_selected.plus(1).plus(1);
+        }
     }
     else if (mode === 'writing') {
         const thing = asdf3.getAt(cur_selected)!;
@@ -196,9 +202,26 @@ function every_frame(cur_timestamp_millis: number) {
             }
         }
     }
+    // else if (mode.main === 'for_loop_helper') {
     else {
-        const _: never = mode;
+        if (input.keyboard.wasPressed(KeyCode.Space)) {
+            switch (mode.sub) {
+                case 0:
+                    cur_selected = mode.address.plus(2).plus(2).plus(1);
+                    mode.sub = 1;
+                    break;
+                case 1:
+                    cur_selected = mode.address.plus(4);
+                    mode = 'normal';
+                    break;
+                default:
+                    break;
+            }
+        }
     }
+    // else {
+    //     const _: never = mode;
+    // }
 
     // drawer.mainProgram(renderAsdf(asdf3, new Address([]), cursor));
 
@@ -360,3 +383,13 @@ if (loading_screen_element) {
 else {
     animation_id = requestAnimationFrame(every_frame);
 }
+
+function distSq(u: number, v: number): number {
+    const dx = u - 0.5;
+    const dy = v - 0.5;
+    return dx * dx + dy * dy;
+}
+
+// for (let index = 0; index < array.length; index++) {
+//     const element = array[index];
+// }
