@@ -24,104 +24,82 @@ const CONFIG = {
 // let cur_selected: SexprAddress = [];
 // let normal_mode = true;
 
-let mode: 'normal' | 'writing' | { main: 'for_loop_helper', sub: number, address: Address } = 'normal';
-
-// let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
-//     ['if', ['<', 'u', '0'], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]);
-let asdf3: Asdf = Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
-    ['let', [['dx', ['-', 'u', '.5']], ['dy', ['-', 'v', '.5']]], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]);
-// [['const', 'dx', ['u', '-', '.5']], ['return', 'dx']]]]);
-// const cursor = new Cursor(new Address([1, 2, 0]));
-let cur_selected = new Address([1, 4, 2]);
-
-let last_timestamp_millis = 0;
-// main loop; game logic lives here
-function every_frame(cur_timestamp_millis: number) {
-    const delta_time = (cur_timestamp_millis - last_timestamp_millis) / 1000;
-    last_timestamp_millis = cur_timestamp_millis;
-    input.startFrame();
-    twgl.resizeCanvasToDisplaySize(canvas);
-
-    const global_t = cur_timestamp_millis / 1000;
-    drawer.clear();
-
-    drawer.drawBasic(asdf3, cur_selected, typeof mode !== 'string' ? 'normal' : mode);
-
-    if (mode === 'normal') {
+function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address, 'normal' | 'writing'], never, Input> {
+    while (true) {
         if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
             // (.. [a] b ..) => (.. a [b] ..)
-            if (cur_selected.data.length > 0) {
-                cur_selected = cur_selected.nextSibling().validOrNull(asdf3) ?? cur_selected;
+            if (selected.data.length > 0) {
+                selected = selected.nextSibling().validOrNull(state) ?? selected;
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.ArrowLeft) || input.keyboard.wasPressed(KeyCode.KeyK)) {
             // (.. a [b] ..) => (.. [a] b ..)
-            if (cur_selected.data.length > 0) {
-                cur_selected = cur_selected.prevSibling(asdf3) ?? cur_selected;
+            if (selected.data.length > 0) {
+                selected = selected.prevSibling(state) ?? selected;
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.ArrowDown) || input.keyboard.wasPressed(KeyCode.KeyL)) {
             // [(a ..)] => ([a] ..)
-            cur_selected = cur_selected.firstChild().validOrNull(asdf3) ?? cur_selected;
+            selected = selected.firstChild().validOrNull(state) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.ArrowUp) || input.keyboard.wasPressed(KeyCode.KeyH)) {
             // ([a] ..) => [(a ..)]
-            cur_selected = cur_selected.parent() ?? cur_selected;
+            selected = selected.parent() ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
             // [a] -> ([a])
-            asdf3 = asdf3.setAt(cur_selected, new Asdf([asdf3.getAt(cur_selected)!]));
+            state = state.setAt(selected, new Asdf([state.getAt(selected)!]));
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyM)) {
             // [(a)] -> [a]
-            const stuff = asdf3.getAt(cur_selected)!;
+            const stuff = state.getAt(selected)!;
             if (!stuff.isLeaf() && stuff.childCount() === 1) {
-                asdf3 = asdf3.setAt(cur_selected, stuff.childAt(0)!);
+                state = state.setAt(selected, stuff.childAt(0)!);
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyY)) {
             // (.. [a] ..) -> (.. a [a] ..)
-            const to_duplicate = asdf3.getAt(cur_selected)!;
-            asdf3 = asdf3.insertBefore(cur_selected, to_duplicate);
-            cur_selected = cur_selected.nextSibling();
+            const to_duplicate = state.getAt(selected)!;
+            state = state.insertBefore(selected, to_duplicate);
+            selected = selected.nextSibling();
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyD)) {
             // (.. [a] b ..) -> (.. [b] ..)
             // (.. a [b]) -> (.. [a])
             // ([a]) -> [()]
-            if (cur_selected.data.length > 0) {
-                asdf3 = asdf3.deleteAt(cur_selected) ?? asdf3;
-                cur_selected = cur_selected.validFor(asdf3)
-                    ? cur_selected
-                    : cur_selected.safePrevSibling() ?? cur_selected.parent()!;
+            if (selected.data.length > 0) {
+                state = state.deleteAt(selected) ?? state;
+                selected = selected.validFor(state)
+                    ? selected
+                    : selected.safePrevSibling() ?? selected.parent()!;
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.Digit1)) {
             // [(a b ..)] -> (a [b] ..)
-            cur_selected = cur_selected.plus(1).validOrNull(asdf3) ?? cur_selected;
+            selected = selected.plus(1).validOrNull(state) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.Digit2)) {
             // [(a b c ..)] -> (a b [c] ..)
-            cur_selected = cur_selected.plus(2).validOrNull(asdf3) ?? cur_selected;
+            selected = selected.plus(2).validOrNull(state) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.Digit3)) {
-            cur_selected = cur_selected.plus(3).validOrNull(asdf3) ?? cur_selected;
+            selected = selected.plus(3).validOrNull(state) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.Digit4)) {
-            cur_selected = cur_selected.plus(4).validOrNull(asdf3) ?? cur_selected;
+            selected = selected.plus(4).validOrNull(state) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.Digit5)) {
-            cur_selected = cur_selected.plus(5).validOrNull(asdf3) ?? cur_selected;
+            selected = selected.plus(5).validOrNull(state) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.BracketRight)) {
             // go to variable definition
-            const my_var = asdf3.getAt(cur_selected)!;
+            const my_var = state.getAt(selected)!;
             if (my_var.isLeaf()) {
                 const my_var_name = my_var.data;
                 if (typeof my_var_name !== 'string') throw new Error('unreachable');
-                let maybe_address = cur_selected.parent();
+                let maybe_address = selected.parent();
                 while (maybe_address !== null) {
-                    const stuff_at_maybe = asdf3.getAt(maybe_address)!;
+                    const stuff_at_maybe = state.getAt(maybe_address)!;
                     console.log(stuff_at_maybe);
                     if (stuff_at_maybe.childCount() >= 2
                         && stuff_at_maybe.childAt(0)!.isAtom('let')) {
@@ -134,7 +112,7 @@ function every_frame(cur_timestamp_millis: number) {
                             }
                         });
                         if (result !== null) {
-                            cur_selected = result;
+                            selected = result;
                             break;
                         }
                     }
@@ -149,7 +127,7 @@ function every_frame(cur_timestamp_millis: number) {
                             }
                         });
                         if (result !== null) {
-                            cur_selected = result;
+                            selected = result;
                             break;
                         }
                     }
@@ -158,70 +136,89 @@ function every_frame(cur_timestamp_millis: number) {
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
-            const expr = asdf3.getAt(cur_selected)!;
+            const expr = state.getAt(selected)!;
             // [a] -> (if [true] a void)
-            asdf3 = asdf3.setAt(cur_selected, new Asdf([new Asdf('if'), new Asdf('true'), expr, expr]));
-            cur_selected = cur_selected.plus(1);
+            state = state.setAt(selected, new Asdf([new Asdf('if'), new Asdf('true'), expr, expr]));
+            selected = selected.plus(1);
         }
         else if (input.keyboard.wasPressed(KeyCode.Equal)) {
             // [a] -> (= a [a])
-            const expr = asdf3.getAt(cur_selected)!;
-            asdf3 = asdf3.setAt(cur_selected, new Asdf([new Asdf('='), expr, expr]));
-            cur_selected = cur_selected.plus(2);
+            const expr = state.getAt(selected)!;
+            state = state.setAt(selected, new Asdf([new Asdf('='), expr, expr]));
+            selected = selected.plus(2);
         }
         // else if
         // // (.. [a] ..) -> [a] (.. ..)
         else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
             // change atom name
-            if (asdf3.getAt(cur_selected)!.isLeaf()) {
-                mode = 'writing';
+            if (state.getAt(selected)!.isLeaf()) {
+                // TODO: extract to its own function
+                let val = state.getAt(selected)!.atomValue();
+                yield [state, selected, 'writing'];
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    if (input.keyboard.wasPressed(KeyCode.Backspace)) {
+                        val = val.slice(0, -1);
+                        state = state.setAt(selected, new Asdf(val));
+                    }
+                    else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
+                        break;
+                    }
+                    else {
+                        if (input.keyboard.text.length > 0) {
+                            val = val + input.keyboard.text;
+                            state = state.setAt(selected, new Asdf(val));
+                        }
+                    }
+                    yield [state, selected, 'writing'];
+                }
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyF)) {
-            mode = { main: 'for_loop_helper', sub: 0, address: cur_selected };
-            const expr = asdf3.getAt(cur_selected)!;
-            asdf3 = asdf3.setAt(cur_selected, new Asdf([new Asdf('for'), Asdf.fromRaw(['set!', 'i', '0']), Asdf.fromRaw(['<?', 'i', ['len', 'arr']]), Asdf.fromRaw(['+=', 'i', '1']), expr]));
-            cur_selected = cur_selected.plus(1).plus(1);
-        }
-    }
-    else if (mode === 'writing') {
-        const thing = asdf3.getAt(cur_selected)!;
-        if (!thing.isLeaf()) throw new Error('unreachable');
-        const val = thing.data;
-        if (typeof val !== 'string') throw new Error('unreachable');
+            // mode = { main: 'for_loop_helper', sub: 0, address: selected };
+            const parent_address = selected;
+            const expr = state.getAt(selected)!;
+            state = state.setAt(selected, new Asdf([new Asdf('for'), Asdf.fromRaw(['set!', 'i', '0']), Asdf.fromRaw(['<?', 'i', ['len', 'arr']]), Asdf.fromRaw(['+=', 'i', '1']), expr]));
+            selected = selected.plus(1).plus(1);
+            yield [state, selected, 'normal'];
 
-        if (input.keyboard.wasPressed(KeyCode.Backspace)) {
-            asdf3 = asdf3.setAt(cur_selected, new Asdf(val.slice(0, -1)));
-        }
-        else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
-            mode = 'normal';
-        }
-        else {
-            if (input.keyboard.text.length > 0) {
-                asdf3 = asdf3.setAt(cur_selected, new Asdf(val + input.keyboard.text));
+            while (!input.keyboard.wasPressed(KeyCode.Space)) {
+                yield [state, selected, 'normal'];
             }
-        }
-    }
-    // else if (mode.main === 'for_loop_helper') {
-    else {
-        if (input.keyboard.wasPressed(KeyCode.Space)) {
-            switch (mode.sub) {
-                case 0:
-                    cur_selected = mode.address.plus(2).plus(2).plus(1);
-                    mode.sub = 1;
-                    break;
-                case 1:
-                    cur_selected = mode.address.plus(4);
-                    mode = 'normal';
-                    break;
-                default:
-                    break;
+            selected = parent_address.plus(2).plus(2).plus(1);
+            yield [state, selected, 'normal'];
+
+            while (!input.keyboard.wasPressed(KeyCode.Space)) {
+                yield [state, selected, 'normal'];
             }
+            selected = parent_address.plus(4);
+            yield [state, selected, 'normal'];
         }
+        yield [state, selected, 'normal'];
     }
-    // else {
-    //     const _: never = mode;
-    // }
+}
+
+// let mode: 'normal' | 'writing' | { main: 'for_loop_helper', sub: number, address: Address } = 'normal';
+
+const editor_coroutine = normal_mode(
+    Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
+        ['let', [['dx', ['-', 'u', '.5']], ['dy', ['-', 'v', '.5']]], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]),
+    new Address([1, 4, 2]),
+);
+
+let last_timestamp_millis = 0;
+// main loop; game logic lives here
+function every_frame(cur_timestamp_millis: number) {
+    const delta_time = (cur_timestamp_millis - last_timestamp_millis) / 1000;
+    last_timestamp_millis = cur_timestamp_millis;
+    input.startFrame();
+    twgl.resizeCanvasToDisplaySize(canvas);
+
+    const global_t = cur_timestamp_millis / 1000;
+    drawer.clear();
+
+    const [cur_state, cur_selected, mode] = editor_coroutine.next(input).value;
+    drawer.drawBasic(cur_state, cur_selected, mode);
 
     // drawer.mainProgram(renderAsdf(asdf3, new Address([]), cursor));
 

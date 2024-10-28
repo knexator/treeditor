@@ -121,6 +121,12 @@ export class Asdf {
         return this.childAt(first)?.getAt(new Address(rest)) ?? null;
     }
 
+    atomValue(): string {
+        if (!this.isLeaf()) throw new Error('not an atom');
+        if (typeof this.data !== 'string') throw new Error('unreachable');
+        return this.data;
+    }
+
     insertBefore(address: Address, value: Asdf): Asdf {
         if (address.data.length === 0) throw new Error('bad');
         if (this.isLeaf()) throw new Error('bad');
