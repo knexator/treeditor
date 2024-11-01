@@ -183,48 +183,10 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
             // change atom name
             if (input.keyboard.isShiftDown()) {
-                let val = '';
-                state = state.setAt(selected, new Asdf(val));
-                yield [state, selected, 'writing'];
-                // eslint-disable-next-line no-constant-condition
-                while (true) {
-                    if (input.keyboard.wasPressed(KeyCode.Backspace)) {
-                        val = val.slice(0, -1);
-                        state = state.setAt(selected, new Asdf(val));
-                    }
-                    else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
-                        break;
-                    }
-                    else {
-                        if (input.keyboard.text.length > 0) {
-                            val = val + input.keyboard.text;
-                            state = state.setAt(selected, new Asdf(val));
-                        }
-                    }
-                    yield [state, selected, 'writing'];
-                }
+                [state, selected] = yield* writing_mode('', state, selected);
             }
             else if (state.getAt(selected)!.isLeaf()) {
-                // TODO: extract to its own function
-                let val = state.getAt(selected)!.atomValue();
-                yield [state, selected, 'writing'];
-                // eslint-disable-next-line no-constant-condition
-                while (true) {
-                    if (input.keyboard.wasPressed(KeyCode.Backspace)) {
-                        val = val.slice(0, -1);
-                        state = state.setAt(selected, new Asdf(val));
-                    }
-                    else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
-                        break;
-                    }
-                    else {
-                        if (input.keyboard.text.length > 0) {
-                            val = val + input.keyboard.text;
-                            state = state.setAt(selected, new Asdf(val));
-                        }
-                    }
-                    yield [state, selected, 'writing'];
-                }
+                [state, selected] = yield* writing_mode(state.getAt(selected)!.atomValue(), state, selected);
             }
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyF)) {
@@ -249,6 +211,29 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         }
         yield [state, selected, 'normal'];
     }
+}
+
+function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[Asdf, Address, 'writing'], [Asdf, Address], Input> {
+    state = state.setAt(selected, new Asdf(val));
+    yield [state, selected, 'writing'];
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        if (input.keyboard.wasPressed(KeyCode.Backspace)) {
+            val = val.slice(0, -1);
+            state = state.setAt(selected, new Asdf(val));
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
+            break;
+        }
+        else {
+            if (input.keyboard.text.length > 0) {
+                val = val + input.keyboard.text;
+                state = state.setAt(selected, new Asdf(val));
+            }
+        }
+        yield [state, selected, 'writing'];
+    }
+    return [state, selected];
 }
 
 // let mode: 'normal' | 'writing' | { main: 'for_loop_helper', sub: number, address: Address } = 'normal';
