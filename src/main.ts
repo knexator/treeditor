@@ -225,6 +225,24 @@ function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[
         else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
             break;
         }
+        else if (input.keyboard.wasPressed(KeyCode.Space)) {
+            val = '';
+            state = state.insertAfter(selected, new Asdf(val));
+            selected = selected.nextSibling();
+            yield [state, selected, 'writing'];
+            // eslint-disable-next-line no-constant-condition
+            while (input.keyboard.text.length === 0) {
+                yield [state, selected, 'writing'];
+            }
+            if (input.keyboard.text === '(') {
+                state = state.setAt(selected, new Asdf([new Asdf(val)]));
+                selected = selected.plus(0);
+            }
+            else {
+                val = val + input.keyboard.text;
+                state = state.setAt(selected, new Asdf(val));
+            }
+        }
         else {
             if (input.keyboard.text.length > 0) {
                 val = val + input.keyboard.text;
