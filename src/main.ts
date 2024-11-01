@@ -65,6 +65,13 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
             selected = selected.plus(5).validOrNull(state) ?? selected;
         }
         // Modify text
+        else if (input.keyboard.wasPressed(KeyCode.KeyO)) {
+            // [(..)] -> ([_] ..)
+            if (!state.getAt(selected)!.isLeaf()) {
+                state = state.insertBefore(selected.plus(0), new Asdf('_'));
+                selected = selected.plus(0);
+            }
+        }
         else if (input.keyboard.isShiftDown() && input.keyboard.wasPressed(KeyCode.KeyI)) {
             // [a] -> [()]
             state = state.setAt(selected, new Asdf([]));
