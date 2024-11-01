@@ -26,6 +26,7 @@ const CONFIG = {
 
 function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address, 'normal' | 'writing'], never, Input> {
     while (true) {
+        // Move selection
         if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
             // (.. [a] b ..) => (.. a [b] ..)
             if (selected.data.length > 0) {
@@ -46,6 +47,24 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
             // ([a] ..) => [(a ..)]
             selected = selected.parent() ?? selected;
         }
+        else if (input.keyboard.wasPressed(KeyCode.Digit1)) {
+            // [(a b ..)] -> (a [b] ..)
+            selected = selected.plus(1).validOrNull(state) ?? selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit2)) {
+            // [(a b c ..)] -> (a b [c] ..)
+            selected = selected.plus(2).validOrNull(state) ?? selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit3)) {
+            selected = selected.plus(3).validOrNull(state) ?? selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit4)) {
+            selected = selected.plus(4).validOrNull(state) ?? selected;
+        }
+        else if (input.keyboard.wasPressed(KeyCode.Digit5)) {
+            selected = selected.plus(5).validOrNull(state) ?? selected;
+        }
+        // Modify text
         else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
             // [a] -> ([a])
             state = state.setAt(selected, new Asdf([state.getAt(selected)!]));
@@ -74,23 +93,7 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
                     : selected.safePrevSibling() ?? selected.parent()!;
             }
         }
-        else if (input.keyboard.wasPressed(KeyCode.Digit1)) {
-            // [(a b ..)] -> (a [b] ..)
-            selected = selected.plus(1).validOrNull(state) ?? selected;
-        }
-        else if (input.keyboard.wasPressed(KeyCode.Digit2)) {
-            // [(a b c ..)] -> (a b [c] ..)
-            selected = selected.plus(2).validOrNull(state) ?? selected;
-        }
-        else if (input.keyboard.wasPressed(KeyCode.Digit3)) {
-            selected = selected.plus(3).validOrNull(state) ?? selected;
-        }
-        else if (input.keyboard.wasPressed(KeyCode.Digit4)) {
-            selected = selected.plus(4).validOrNull(state) ?? selected;
-        }
-        else if (input.keyboard.wasPressed(KeyCode.Digit5)) {
-            selected = selected.plus(5).validOrNull(state) ?? selected;
-        }
+        // Magics
         else if (input.keyboard.wasPressed(KeyCode.BracketRight)) {
             // go to variable definition
             const my_var = state.getAt(selected)!;
@@ -147,8 +150,6 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
             state = state.setAt(selected, new Asdf([new Asdf('='), expr, expr]));
             selected = selected.plus(2);
         }
-        // else if
-        // // (.. [a] ..) -> [a] (.. ..)
         else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
             // change atom name
             if (state.getAt(selected)!.isLeaf()) {
