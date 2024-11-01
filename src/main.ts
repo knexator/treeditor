@@ -170,7 +170,29 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
             // change atom name
-            if (state.getAt(selected)!.isLeaf()) {
+            if (input.keyboard.isShiftDown()) {
+                let val = '';
+                state = state.setAt(selected, new Asdf(val));
+                yield [state, selected, 'writing'];
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    if (input.keyboard.wasPressed(KeyCode.Backspace)) {
+                        val = val.slice(0, -1);
+                        state = state.setAt(selected, new Asdf(val));
+                    }
+                    else if (input.keyboard.wasPressed(KeyCode.Escape) || input.keyboard.wasPressed(KeyCode.Backslash)) {
+                        break;
+                    }
+                    else {
+                        if (input.keyboard.text.length > 0) {
+                            val = val + input.keyboard.text;
+                            state = state.setAt(selected, new Asdf(val));
+                        }
+                    }
+                    yield [state, selected, 'writing'];
+                }
+            }
+            else if (state.getAt(selected)!.isLeaf()) {
                 // TODO: extract to its own function
                 let val = state.getAt(selected)!.atomValue();
                 yield [state, selected, 'writing'];
