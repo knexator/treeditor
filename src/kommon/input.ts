@@ -293,6 +293,10 @@ export class Keyboard {
         private readonly keyboard_listener: KeyboardListener = new KeyboardListener(),
     ) { }
 
+    isShiftDown(): boolean {
+        return this.isDown(KeyCode.ShiftLeft) || this.isDown(KeyCode.ShiftRight);
+    }
+
     isDown(code: KeyCode): boolean {
         return this.pressed.has(code);
     }

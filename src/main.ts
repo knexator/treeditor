@@ -76,6 +76,24 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
                 state = state.setAt(selected, stuff.childAt(0)!);
             }
         }
+        else if (input.keyboard.isShiftDown() && input.keyboard.wasPressed(KeyCode.KeyA)) {
+            // (.. [a] ..) -> (.. [()] a ..)
+            state = state.insertBefore(selected, new Asdf([]));
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyA)) {
+            // (.. [a] ..) -> (.. a [()] ..)
+            state = state.insertAfter(selected, new Asdf([]));
+            selected = selected.nextSibling();
+        }
+        else if (input.keyboard.isShiftDown() && input.keyboard.wasPressed(KeyCode.KeyS)) {
+            // (.. [a] ..) -> (.. [_] a ..)
+            state = state.insertBefore(selected, new Asdf('_'));
+        }
+        else if (input.keyboard.wasPressed(KeyCode.KeyS)) {
+            // (.. [a] ..) -> (.. a [_] ..)
+            state = state.insertAfter(selected, new Asdf('_'));
+            selected = selected.nextSibling();
+        }
         else if (input.keyboard.wasPressed(KeyCode.KeyY)) {
             // (.. [a] ..) -> (.. a [a] ..)
             const to_duplicate = state.getAt(selected)!;

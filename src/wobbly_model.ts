@@ -143,6 +143,22 @@ export class Asdf {
         }
     }
 
+    insertAfter(address: Address, value: Asdf): Asdf {
+        if (address.data.length === 0) throw new Error('bad');
+        if (this.isLeaf()) throw new Error('bad');
+        if (typeof this.data === 'string') throw new Error('unreachable');
+        const [first, ...rest] = address.data;
+        if (rest.length === 0) {
+            return new Asdf(addAt(this.data, value, first + 1));
+        }
+        else {
+            return new Asdf(
+                replace(this.data,
+                    this.childAt(first)!.insertAfter(new Address(rest), value),
+                    first));
+        }
+    }
+
     deleteAt(address: Address): Asdf {
         if (address.data.length === 0) throw new Error('bad');
         if (this.isLeaf()) throw new Error('bad');
