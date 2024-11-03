@@ -179,6 +179,11 @@ export class Asdf {
         if (typeof x === 'string') return new Asdf(x);
         return new Asdf(x.map(v => Asdf.fromRaw(v)));
     }
+
+    toCutreString(): string {
+        if (typeof this.data === 'string') return this.data;
+        return '(' + this.data.map(x => x.toCutreString()).join(' ') + ')';
+    }
 }
 
 export class Address {

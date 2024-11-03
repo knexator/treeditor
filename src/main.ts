@@ -7,6 +7,7 @@ import { initGL2, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, 
 import { Drawer } from './drawer';
 import { concatAddresses, doNil, doPair, getAtLocalAddress, isValidAddress, parentAdress, parseSexpr, randomAtom, setAtLocalAddress, Sexpr, SexprAddress } from './model';
 import { Asdf, Cursor, Address } from './wobbly_model';
+import { resourceUsage } from 'process';
 
 const input = new Input();
 const canvas = document.querySelector<HTMLCanvasElement>('#ctx_canvas')!;
@@ -24,7 +25,11 @@ const CONFIG = {
 // let cur_selected: SexprAddress = [];
 // let normal_mode = true;
 
-function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address, 'normal' | 'writing'], never, Input> {
+export type ExtraInfo = string;
+export const NO_EXTRA_INFO: ExtraInfo = '';
+
+function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address, 'normal' | 'writing', ExtraInfo], never, Input> {
+    let extra_info: ExtraInfo = '';
     while (true) {
         // Move selection
         if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
@@ -126,47 +131,7 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         // Magics
         else if (input.keyboard.wasPressed(KeyCode.BracketRight)) {
             // go to variable definition
-            const my_var = state.getAt(selected)!;
-            if (my_var.isLeaf()) {
-                const my_var_name = my_var.data;
-                if (typeof my_var_name !== 'string') throw new Error('unreachable');
-                let maybe_address = selected.parent();
-                while (maybe_address !== null) {
-                    const stuff_at_maybe = state.getAt(maybe_address)!;
-                    console.log(stuff_at_maybe);
-                    if (stuff_at_maybe.childCount() >= 2
-                        && stuff_at_maybe.childAt(0)!.isAtom('let')) {
-                        const bindings = stuff_at_maybe.childAt(1)!;
-                        let result: Address | null = null;
-                        bindings.forEachChild((v, k) => {
-                            if (v.childCount() === 2 && v.childAt(0)!.isAtom(my_var_name)) {
-                                result = maybe_address!.plus(1).plus(k).plus(0);
-                                return;
-                            }
-                        });
-                        if (result !== null) {
-                            selected = result;
-                            break;
-                        }
-                    }
-                    else if (stuff_at_maybe.childCount() >= 5
-                        && stuff_at_maybe.childAt(0)!.isAtom('fn')) {
-                        const params = stuff_at_maybe.childAt(2)!;
-                        let result: Address | null = null;
-                        params.forEachChild((v, k) => {
-                            if (v.childCount() === 2 && v.childAt(0)!.isAtom(my_var_name)) {
-                                result = maybe_address!.plus(2).plus(k).plus(0);
-                                return;
-                            }
-                        });
-                        if (result !== null) {
-                            selected = result;
-                            break;
-                        }
-                    }
-                    maybe_address = maybe_address.parent();
-                }
-            }
+            selected = findVariableDefinition(state, selected) ?? selected;
         }
         else if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
             const expr = state.getAt(selected)!;
@@ -195,27 +160,81 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
             const expr = state.getAt(selected)!;
             state = state.setAt(selected, new Asdf([new Asdf('for'), Asdf.fromRaw(['set!', 'i', '0']), Asdf.fromRaw(['<?', 'i', ['len', 'arr']]), Asdf.fromRaw(['+=', 'i', '1']), expr]));
             selected = selected.plus(1).plus(1);
-            yield [state, selected, 'normal'];
+            yield [state, selected, 'normal', NO_EXTRA_INFO];
 
             while (!input.keyboard.wasPressed(KeyCode.Space)) {
-                yield [state, selected, 'normal'];
+                yield [state, selected, 'normal', NO_EXTRA_INFO];
             }
             selected = parent_address.plus(2).plus(2).plus(1);
-            yield [state, selected, 'normal'];
+            yield [state, selected, 'normal', NO_EXTRA_INFO];
 
             while (!input.keyboard.wasPressed(KeyCode.Space)) {
-                yield [state, selected, 'normal'];
+                yield [state, selected, 'normal', NO_EXTRA_INFO];
             }
             selected = parent_address.plus(4);
-            yield [state, selected, 'normal'];
+            yield [state, selected, 'normal', NO_EXTRA_INFO];
         }
-        yield [state, selected, 'normal'];
+
+        // get type of hovered variable
+        let extra_info: ExtraInfo | null = null;
+        {
+            const def_place = findVariableDefinition(state, selected);            
+            if (def_place !== null) {
+                const fn_place = def_place.parent()?.parent()?.parent()?.plus(0);
+                // is it a fn param?
+                if (fn_place !== undefined && state.getAt(fn_place)!.isAtom('fn')) {
+                    extra_info = state.getAt(def_place.nextSibling())!.toCutreString();
+                }
+            }
+        }
+        yield [state, selected, 'normal', extra_info ?? NO_EXTRA_INFO];
     }
 }
 
-function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[Asdf, Address, 'writing'], [Asdf, Address], Input> {
+function findVariableDefinition(state: Asdf, selected: Address): Address | null {
+    const my_var = state.getAt(selected)!;
+    if (!my_var.isLeaf()) return null;
+
+    const my_var_name = my_var.atomValue();
+    let maybe_address = selected.parent();
+    while (maybe_address !== null) {
+        const stuff_at_maybe = state.getAt(maybe_address)!;
+        if (stuff_at_maybe.childCount() >= 2
+            && stuff_at_maybe.childAt(0)!.isAtom('let')) {
+            const bindings = stuff_at_maybe.childAt(1)!;
+            let result: Address | null = null;
+            bindings.forEachChild((v, k) => {
+                if (v.childCount() === 2 && v.childAt(0)!.isAtom(my_var_name)) {
+                    result = maybe_address!.plus(1).plus(k).plus(0);
+                    return;
+                }
+            });
+            if (result !== null) {
+                return result;
+            }
+        }
+        else if (stuff_at_maybe.childCount() >= 5
+            && stuff_at_maybe.childAt(0)!.isAtom('fn')) {
+            const params = stuff_at_maybe.childAt(2)!;
+            let result: Address | null = null;
+            params.forEachChild((v, k) => {
+                if (v.childCount() === 2 && v.childAt(0)!.isAtom(my_var_name)) {
+                    result = maybe_address!.plus(2).plus(k).plus(0);
+                    return;
+                }
+            });
+            if (result !== null) {
+                return result;
+            }
+        }
+        maybe_address = maybe_address.parent();
+    }
+    return null;
+}
+
+function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[Asdf, Address, 'writing', ExtraInfo], [Asdf, Address], Input> {
     state = state.setAt(selected, new Asdf(val));
-    yield [state, selected, 'writing'];
+    yield [state, selected, 'writing', NO_EXTRA_INFO];
     // eslint-disable-next-line no-constant-condition
     while (true) {
         if (input.keyboard.wasPressed(KeyCode.Backspace)) {
@@ -229,10 +248,10 @@ function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[
             val = '';
             state = state.insertAfter(selected, new Asdf(val));
             selected = selected.nextSibling();
-            yield [state, selected, 'writing'];
+            yield [state, selected, 'writing', NO_EXTRA_INFO];
             // eslint-disable-next-line no-constant-condition
             while (input.keyboard.text.length === 0) {
-                yield [state, selected, 'writing'];
+                yield [state, selected, 'writing', NO_EXTRA_INFO];
             }
             if (input.keyboard.text === '(') {
                 state = state.setAt(selected, new Asdf([new Asdf(val)]));
@@ -249,12 +268,10 @@ function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[
                 state = state.setAt(selected, new Asdf(val));
             }
         }
-        yield [state, selected, 'writing'];
+        yield [state, selected, 'writing', NO_EXTRA_INFO];
     }
     return [state, selected];
 }
-
-// let mode: 'normal' | 'writing' | { main: 'for_loop_helper', sub: number, address: Address } = 'normal';
 
 const editor_coroutine = normal_mode(
     Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
@@ -273,8 +290,8 @@ function every_frame(cur_timestamp_millis: number) {
     const global_t = cur_timestamp_millis / 1000;
     drawer.clear();
 
-    const [cur_state, cur_selected, mode] = editor_coroutine.next(input).value;
-    drawer.drawBasic(cur_state, cur_selected, mode);
+    const [cur_state, cur_selected, mode, extra_info] = editor_coroutine.next(input).value;
+    drawer.drawBasic(cur_state, cur_selected, mode, extra_info);
 
     // drawer.mainProgram(renderAsdf(asdf3, new Address([]), cursor));
 

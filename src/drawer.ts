@@ -5,6 +5,7 @@ import Rand from 'rand-seed';
 import { Random } from './kommon/random';
 import { asListPlusSentinel, isNil, Sexpr, SexprAddress } from './model';
 import { Address, Asdf } from './wobbly_model';
+import { ExtraInfo } from './main';
 
 // TODO: pretty printing https://dspace.mit.edu/bitstream/handle/1721.1/6503/AIM-1102.pdf
 export class Drawer {
@@ -38,7 +39,7 @@ export class Drawer {
         });
     }
 
-    drawBasic(main: Asdf, highlighted: Address, mode: 'normal' | 'writing'): void {
+    drawBasic(main: Asdf, highlighted: Address, mode: 'normal' | 'writing', extra_info: ExtraInfo): void {
         this.ctx.textBaseline = 'top';
         this.ctx.font = `${this.lineHeight}px monospace`;
         this.ctx.fillStyle = 'white';
@@ -105,6 +106,9 @@ export class Drawer {
         function asSpaces(x: string): string {
             return x.replace(/[^\s]/g, ' ');
         }
+
+        this.ctx.fillStyle = 'red';
+        this.fillText(extra_info, new Vec2(10, this.ctx.canvas.height - lineSize));
     }
 
     mainThing(expr: Sexpr, highlighted: SexprAddress, normal_mode: boolean) {
