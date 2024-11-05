@@ -29,11 +29,15 @@ export function envFromToplevel(expr: Asdf): Env {
     assertAtom(toplevel, 'toplevel');
     const result = new Env([]);
     for (const def of defs) {
-        const [fn, fn_name, params, return_type, body, ...extra] = def.innerValues();
-        if (!fn.isAtom('fn')) continue;
-        assertAtom(fn, 'fn');
-        assertEmpty(extra);
-        result.add(fn_name.atomValue(), new FnkDef(params, return_type, body));
+        if (def.isLeaf()) continue;
+        if (def.innerValues().length === 0) continue;
+        const first = def.innerValues()[0];
+        if (first.isAtom('fn')) {
+            const [fn, fn_name, params, return_type, body, ...extra] = def.innerValues();
+            assertAtom(fn, 'fn');
+            assertEmpty(extra);
+            result.add(fn_name.atomValue(), new FnkDef(params, return_type, body));
+        }
     }
     return result;
 }
