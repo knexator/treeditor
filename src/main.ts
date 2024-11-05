@@ -8,7 +8,7 @@ import { Drawer } from './drawer';
 import { concatAddresses, doNil, doPair, getAtLocalAddress, isValidAddress, parentAdress, parseSexpr, randomAtom, setAtLocalAddress, Sexpr, SexprAddress } from './model';
 import { Asdf, Cursor, Address } from './wobbly_model';
 import { resourceUsage } from 'process';
-import { envFromToplevel, myEval } from './base_interpreter';
+import { envFromToplevel, outerEval } from './base_interpreter';
 
 const input = new Input();
 const canvas = document.querySelector<HTMLCanvasElement>('#ctx_canvas')!;
@@ -132,8 +132,10 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         else if (input.keyboard.wasPressed(KeyCode.KeyT)) {
             const env = envFromToplevel(state);
             const cur = state.getAt(selected)!;
-            const res = myEval(cur, env);
-            state = state.setAt(selected, res);
+            const res = outerEval(cur, env);
+            if (res !== null) {
+                state = state.setAt(selected, res);
+            }
         }
         // Magics
         else if (input.keyboard.wasPressed(KeyCode.BracketRight)) {
