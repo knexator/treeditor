@@ -66,7 +66,10 @@ export function outerEval(expr: Asdf, env: Env): Asdf | null {
 }
 
 export function myEval(expr: Asdf, env: Env): Value | null {
-    if (expr.isLeaf()) return env.lookup(expr.atomValue());
+    if (expr.isLeaf()) {
+        if (expr.atomValue()[0] === '#') return expr;
+        return env.lookup(expr.atomValue());
+    }
     if (expr.innerValues().length === 0) return null;
     const [first, ...rest] = expr.innerValues();
     const fn = myEval(first, env);
