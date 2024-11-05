@@ -28,6 +28,7 @@ class Env {
 
 class FnkDef {
     constructor(
+        public typed: boolean,
         public params: Asdf,
         public return_type: Asdf,
         public body: Asdf,
@@ -46,7 +47,13 @@ export function envFromToplevel(expr: Asdf): Env {
             const [fn, fn_name, params, return_type, body, ...extra] = def.innerValues();
             assertAtom(fn, 'fn');
             assertEmpty(extra);
-            result.add(fn_name.atomValue(), new FnkDef(params, return_type, body));
+            result.add(fn_name.atomValue(), new FnkDef(true, params, return_type, body));
+        }
+        else if (first.isAtom('def')) {
+            const [fn, fn_name, params, body, ...extra] = def.innerValues();
+            assertAtom(fn, 'def');
+            assertEmpty(extra);
+            result.add(fn_name.atomValue(), new FnkDef(false, params, new Asdf('TODO: simplify this'), body));
         }
     }
     return result;
@@ -68,9 +75,14 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         if (rest.length !== params.length) return null;
         const new_env = new Env([env]);
         for (let k = 0; k < params.length; k++) {
-            const [name, type, ...extra] = params[k].innerValues();
-            if (extra.length > 0) return null;
-            new_env.add(name.atomValue(), rest[k]);
+            if (fn.typed) {
+                const [name, type, ...extra] = params[k].innerValues();
+                if (extra.length > 0) return null;
+                new_env.add(name.atomValue(), rest[k]);
+            }
+            else {
+                new_env.add(params[k].atomValue(), rest[k]);
+            }
         }
         return myEval(fn.body, new_env);
     }

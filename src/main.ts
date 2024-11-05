@@ -285,7 +285,7 @@ function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[
 const editor_coroutine = normal_mode(
     Asdf.fromRaw(['toplevel',
         ['first', 'hello', 'world'],
-        ['fn', 'first', [['a', 'Any'], ['b', 'Any']], 'Any',
+        ['def', 'first', ['a', 'b'],
             'a'],
         ['fn', 'swap2', [['a', 'Any'], ['b', 'Any']], 'Any',
             ['list', 'b', 'a']],
