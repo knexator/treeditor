@@ -8,6 +8,7 @@ import { Drawer } from './drawer';
 import { concatAddresses, doNil, doPair, getAtLocalAddress, isValidAddress, parentAdress, parseSexpr, randomAtom, setAtLocalAddress, Sexpr, SexprAddress } from './model';
 import { Asdf, Cursor, Address } from './wobbly_model';
 import { resourceUsage } from 'process';
+import { envFromToplevel, myEval } from './base_interpreter';
 
 const input = new Input();
 const canvas = document.querySelector<HTMLCanvasElement>('#ctx_canvas')!;
@@ -29,7 +30,6 @@ export type ExtraInfo = string;
 export const NO_EXTRA_INFO: ExtraInfo = '';
 
 function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address, 'normal' | 'writing', ExtraInfo], never, Input> {
-    let extra_info: ExtraInfo = '';
     while (true) {
         // Move selection
         if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyJ)) {
@@ -128,6 +128,13 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
                     : selected.safePrevSibling() ?? selected.parent()!;
             }
         }
+        // Eval!
+        else if (input.keyboard.wasPressed(KeyCode.KeyT)) {
+            const env = envFromToplevel(state);
+            const cur = state.getAt(selected)!;
+            const res = myEval(cur, env);
+            state = state.setAt(selected, res);
+        }
         // Magics
         else if (input.keyboard.wasPressed(KeyCode.BracketRight)) {
             // go to variable definition
@@ -178,7 +185,7 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         // get type of hovered variable
         let extra_info: ExtraInfo | null = null;
         {
-            const def_place = findVariableDefinition(state, selected);            
+            const def_place = findVariableDefinition(state, selected);
             if (def_place !== null) {
                 const fn_place = def_place.parent()?.parent()?.parent()?.plus(0);
                 // is it a fn param?
@@ -274,9 +281,16 @@ function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[
 }
 
 const editor_coroutine = normal_mode(
-    Asdf.fromRaw(['toplevel', ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
-        ['let', [['dx', ['-', 'u', '.5']], ['dy', ['-', 'v', '.5']]], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]]]),
-    new Address([1, 4, 2]),
+    Asdf.fromRaw(['toplevel',
+        ['first', 'hello', 'world'],
+        ['fn', 'first', [['a', 'Any'], ['b', 'Any']], 'Any',
+            'a'],
+        ['fn', 'swap2', [['a', 'Any'], ['b', 'Any']], 'Any',
+            ['list', 'b', 'a']],
+        ['fn', 'main', [['u', 'f32'], ['v', 'f32']], 'f32',
+            ['let', [['dx', ['-', 'u', '.5']], ['dy', ['-', 'v', '.5']]], ['+', ['*', 'dx', 'dx'], ['*', 'dy', 'dy']]]],
+    ]),
+    new Address([0]),
 );
 
 let last_timestamp_millis = 0;

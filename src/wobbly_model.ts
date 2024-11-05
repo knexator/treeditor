@@ -121,6 +121,12 @@ export class Asdf {
         return this.childAt(first)?.getAt(new Address(rest)) ?? null;
     }
 
+    innerValues(): Asdf[] {
+        if (this.isLeaf()) throw new Error('not a list');
+        if (typeof this.data === 'string') throw new Error('unreachable');
+        return this.data;
+    }
+
     atomValue(): string {
         if (!this.isLeaf()) throw new Error('not an atom');
         if (typeof this.data !== 'string') throw new Error('unreachable');
