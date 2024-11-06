@@ -293,8 +293,10 @@ function* writing_mode(val: string, state: Asdf, selected: Address): Generator<[
 const editor_coroutine = normal_mode(
     Asdf.fromRaw(['toplevel',
 	    ['hello', 'world'],
-		['def', 'KeyG', ['a', 'b'],
-            'a'],
+		['def', 'KeyG', ['a'],
+            ['#list', '#if', '#true', 'a', 'a']],
+		// ['def', 'KeyG', ['a', 'b'],
+        //     'a'],
         // ['first', 'hello', 'world'],
         // ['def', 'first', ['a', 'b'],
         //     'a'],

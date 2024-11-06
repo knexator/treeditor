@@ -65,7 +65,9 @@ export function outerEval(expr: Asdf, env: Env): Asdf | null {
     return null;
 }
 
+// TODO: lambda params destructuring
 export function myEval(expr: Asdf, env: Env): Value | null {
+    console.log('evaluating: ', expr.toCutreString())
     if (expr.isLeaf()) {
         if (expr.atomValue()[0] === '#') return expr;
         return env.lookup(expr.atomValue());
@@ -73,7 +75,7 @@ export function myEval(expr: Asdf, env: Env): Value | null {
     if (expr.innerValues().length === 0) return null;
     const [raw_first, ...rest] = expr.innerValues();
     const fn = myEval(raw_first, env);
-	if (fn === null) return null;
+    if (fn === null) return null;
     if (fn instanceof FnkDef) {
         const params = fn.params.innerValues();
         if (rest.length !== params.length) return null;
@@ -90,12 +92,20 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         }
         return myEval(fn.body, new_env);
     }
-	else if (fn.isAtom('#apply')) {
-		// (apply car (one two)) -> one
-		const [fn2_expr, params, ...extra] = rest;
-		if (extra.length > 0) return null;
-        return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
-	}
+    else if (fn.isAtom('#apply')) {
+        // (apply car (one two)) -> one
+        const [fn2_expr, params, ...extra] = rest;
+        if (extra.length > 0) return null;
+        // TEMP HACK until params destructuring
+        return myEval(new Asdf([fn2_expr, params]), env);
+        // return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
+    }
+    else if (fn.isAtom('#list')) {
+        const stuff = rest.map(x => myEval(x, env));
+        if (stuff.some(x => x === null)) return null;
+        // @ts-ignore
+        return new Asdf(stuff);
+    }
     return new Asdf('adios');
 }
 
