@@ -71,9 +71,10 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         return env.lookup(expr.atomValue());
     }
     if (expr.innerValues().length === 0) return null;
-    const [first, ...rest] = expr.innerValues();
-    const fn = myEval(first, env);
-    if (fn !== null && fn instanceof FnkDef) {
+    const [raw_first, ...rest] = expr.innerValues();
+    const fn = myEval(raw_first, env);
+	if (fn === null) return null;
+    if (fn instanceof FnkDef) {
         const params = fn.params.innerValues();
         if (rest.length !== params.length) return null;
         const new_env = new Env([env]);
@@ -89,6 +90,12 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         }
         return myEval(fn.body, new_env);
     }
+	else if (fn.isAtom('#apply')) {
+		// (apply car (one two)) -> one
+		const [fn2_expr, params, ...extra] = rest;
+		if (extra.length > 0) return null;
+        return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
+	}
     return new Asdf('adios');
 }
 
