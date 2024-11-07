@@ -70,6 +70,10 @@ test('built in vaus', () => {
     expect(
         outerEval(Asdf.fromCutre(`($let ( (x #1) (y (+ #2 #3)) ) (+ x y))`), Env.standard()),
     ).toBeLitAsdf('#6');
+
+    expect(
+        outerEval(Asdf.fromCutre(`($let ( ($firstSecond ($vau (a (b c) d) _ b)) ) ($firstSecond (1 2) (3 4) (5 6)))`), Env.standard()),
+    ).toBeLitAsdf('3');
 });
 
 // test('basic eval', () => {

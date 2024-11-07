@@ -1,4 +1,4 @@
-import { assertEmpty, assertNotNull } from './kommon/kommon';
+import { assertEmpty, assertNotNull, zip2 } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
 
 class BuiltInVau {
@@ -7,7 +7,7 @@ class BuiltInVau {
     ) { }
 }
 
-type Value = Asdf | FnkDef | BuiltInVau;
+type Value = Asdf | FnkDef | BuiltInVau | Env;
 
 export class Env {
     public map: Map<string, Value>;
@@ -75,6 +75,22 @@ DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
         new_env.add(formal_tree.atomValue(), myEval(value_expr, env));
     }
     return myEval(body, new_env);
+}));
+DEFAULT_ENV.add('$vau', new BuiltInVau((params: Asdf[], env: Env) => {
+    // ($vau x _ x) == $list
+    // ($vau (x) _ x) == $quote
+    // ($vau (x) dyn_env (eval x dyn_env)) == idenitity
+    if (params.length !== 3) throw new Error(`expected 3 params`);
+    const [formal_tree, env_name_expr, body] = params;
+    const env_name = env_name_expr.atomValue();
+    return new BuiltInVau((vau_params: Asdf[], vau_env: Env) => {
+        const new_env = new Env([env]);
+        matchBindings(formal_tree, new Asdf(vau_params), new_env);
+        if (env_name !== '_') {
+            new_env.add('_', vau_env);
+        }
+        return myEval(body, new_env);
+    });
 }));
 
 class FnkDef {
@@ -163,9 +179,28 @@ export function myEval(expr: Asdf, env: Env): Value {
         }
         throw new Error(`no idea how to eval the expr: ${expr.toCutreString()}`);
     }
+    else if (first instanceof Env) {
+        throw new Error(`no idea how to eval an env`);
+    }
     else {
         const _: never = first;
         throw new Error('unreachable');
+    }
+}
+
+function matchBindings(formal_tree: Asdf, params: Asdf, env_to_add_stuff: Env): void {
+    if (formal_tree.isLeaf()) {
+        if (formal_tree.atomValue() !== '_') {
+            env_to_add_stuff.add(formal_tree.atomValue(), params);
+        }
+    }
+    else {
+        const tree_ins = formal_tree.innerValues();
+        const params_ins = params.innerValues();
+        if (params_ins.length !== tree_ins.length) throw new Error('bad number of params');
+        for (const [tree, param] of zip2(tree_ins, params_ins)) {
+            matchBindings(tree, param, env_to_add_stuff);
+        }
     }
 }
 
