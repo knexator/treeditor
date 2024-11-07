@@ -1,4 +1,4 @@
-import { assertEmpty } from './kommon/kommon';
+import { assertEmpty, assertNotNull } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
 
 class BuiltInVau {
@@ -64,7 +64,6 @@ DEFAULT_ENV.add('<?', new BuiltInVau((params: Asdf[], env: Env) => {
     });
     return Asdf.fromBool(numbers[0] < numbers[1]);
 }));
-// @ts-expect-error todo: dont return null
 DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
     const [bindings, body] = params;
@@ -73,7 +72,6 @@ DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
         const [formal_tree, value_expr, ...extra] = binding.innerValues();
         assertEmpty(extra);
         if (!formal_tree.isLeaf()) throw new Error('TODO: implement formal param trees');
-        // @ts-expect-error todo: dont return null
         new_env.add(formal_tree.atomValue(), myEval(value_expr, env));
     }
     return myEval(body, new_env);
@@ -113,30 +111,35 @@ export function envFromToplevel(expr: Asdf): Env {
 }
 
 export function outerEval(expr: Asdf, env: Env): Asdf | null {
-    const res = myEval(expr, env);
-    if (res !== null && res instanceof Asdf) return res;
-    return null;
+    try {
+        const res = myEval(expr, env);
+        if (res instanceof Asdf) return res;
+        return null;
+    }
+    catch (error) {
+        console.log('got error', error);
+        return null;
+    }
 }
 
 // TODO: lambda params destructuring
-export function myEval(expr: Asdf, env: Env): Value | null {
+export function myEval(expr: Asdf, env: Env): Value {
     console.log('evaluating: ', expr.toCutreString());
     if (expr.isLeaf()) {
         if (expr.atomValue()[0] === '#') return expr;
-        return env.lookup(expr.atomValue());
+        return assertNotNull(env.lookup(expr.atomValue()));
     }
-    if (expr.innerValues().length === 0) return null;
     const [raw_first, ...rest] = expr.innerValues();
     const first = myEval(raw_first, env);
-    if (first === null) return null;
     if (first instanceof FnkDef) {
         const params = first.params.innerValues();
-        if (rest.length !== params.length) return null;
+        if (rest.length !== params.length) throw new Error('bad number of params');
         const new_env = new Env([env]);
         for (let k = 0; k < params.length; k++) {
             if (first.typed) {
                 const [name, type, ...extra] = params[k].innerValues();
-                if (extra.length > 0) return null;
+                if (extra.length > 0) throw new Error('bad format in param');
+                ;
                 new_env.add(name.atomValue(), rest[k]);
             }
             else {
@@ -149,21 +152,16 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         return first.value(rest, env);
     }
     else if (first instanceof Asdf) {
+        // TODO: move these to BuiltInVaus
         if (first.isAtom('#apply')) {
             // (apply car (one two)) -> one
             const [fn2_expr, params, ...extra] = rest;
-            if (extra.length > 0) return null;
+            if (extra.length > 0) throw new Error('bad format in #apply');
             // TEMP HACK until params destructuring
             return myEval(new Asdf([fn2_expr, params]), env);
             // return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
         }
-        else if (first.isAtom('#list')) {
-            const stuff = rest.map(x => myEval(x, env));
-            if (stuff.some(x => x === null)) return null;
-            // @ts-expect-error No nulls in the array
-            return new Asdf(stuff);
-        }
-        return null;
+        throw new Error(`no idea how to eval the expr: ${expr.toCutreString()}`);
     }
     else {
         const _: never = first;
