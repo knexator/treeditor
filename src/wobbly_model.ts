@@ -216,17 +216,17 @@ export class Asdf {
             v = v.trimStart();
             if (v[0] === '(') {
                 const inner: Asdf[] = [];
-                let remaining = v.slice(1);
+                let remaining = v.slice(1).trimStart();
                 while (remaining[0] !== ')') {
                     const [cur, new_remaining] = helper(remaining);
-                    remaining = new_remaining;
+                    remaining = new_remaining.trimStart();
                     inner.push(cur);
                 }
                 return [new Asdf(inner), remaining.slice(1)];
             }
             else {
                 let k = 0;
-                while (v[k] !== ' ' && v[k] !== ')' && k < v.length) {
+                while (k < v.length && v[k].trim() !== '' && v[k] !== ')') {
                     k++;
                 }
                 return [new Asdf(v.slice(0, k)), v.slice(k)];
