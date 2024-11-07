@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # my stuff
-design/textures
+src/sketches.knx.rs

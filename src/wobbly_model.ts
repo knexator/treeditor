@@ -211,7 +211,7 @@ export class Asdf {
         return '(' + this.data.map(x => x.toCutreString()).join(' ') + ')';
     }
 
-    static fromCutreString(s: string): Asdf {
+    static fromCutre(s: string): Asdf {
         function helper(v: string): [Asdf, string] {
             v = v.trimStart();
             if (v[0] === '(') {

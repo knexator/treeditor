@@ -1,9 +1,10 @@
 import { assertEmpty } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
 
-type Value = Asdf | FnkDef;
+type BuiltInVau = (params: Asdf[], env: Env) => Asdf;
+type Value = Asdf | FnkDef | BuiltInVau;
 
-class Env {
+export class Env {
     public map: Map<string, Value>;
     constructor(
         public parents: Env[],
@@ -24,7 +25,16 @@ class Env {
         }
         return null;
     }
+
+    static standard(): Env {
+        return new Env([DEFAULT_ENV]);
+    }
 }
+
+const DEFAULT_ENV: Env = new Env([]);
+DEFAULT_ENV.add('$first', (params: Asdf[], env: Env) => {
+    return params[0];
+});
 
 class FnkDef {
     constructor(
