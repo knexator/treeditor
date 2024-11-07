@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { Asdf } from './wobbly_model';
-import { envFromToplevel } from './base_interpreter';
+import { envFromToplevel, outerEval } from './base_interpreter';
 
 test('parsing', () => {
     expect(Asdf.fromCutreString('hola').equals(
@@ -28,10 +28,16 @@ test('parsing', () => {
         Asdf.fromRaw(['hola', 'buenas']))).toBe(true);
 });
 
-// test('basic eval', () => {
-//     // const env = envFromToplevel(Asdf.fromCutreString())
-//     expect(1 + 4).toStrictEqual(5);
-// });
+test('basic eval', () => {
+    const env = envFromToplevel(Asdf.fromCutreString(`(toplevel
+        (def first (a b) a)
+        (def second (a b) b))`));
+
+    expect(outerEval(Asdf.fromCutreString('(first 1 2)'), env)!
+        .equals(new Asdf('1'))).toBe(true);
+    expect(outerEval(Asdf.fromCutreString('(second 1 2)'), env)!
+        .equals(new Asdf('2'))).toBe(true);
+});
 
 // test('params destructuring', () => {
 //     expect(1 + 4).toStrictEqual(5);

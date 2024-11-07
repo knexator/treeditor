@@ -53,7 +53,7 @@ export function envFromToplevel(expr: Asdf): Env {
             const [fn, fn_name, params, body, ...extra] = def.innerValues();
             assertAtom(fn, 'def');
             assertEmpty(extra);
-            result.add(fn_name.atomValue(), new FnkDef(false, params, new Asdf('TODO: simplify this'), body));
+            result.add(fn_name.atomValue(), new FnkDef(false, params, new Asdf('TODO:-simplify-this'), body));
         }
     }
     return result;
