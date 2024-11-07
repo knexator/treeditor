@@ -67,21 +67,21 @@ export function outerEval(expr: Asdf, env: Env): Asdf | null {
 
 // TODO: lambda params destructuring
 export function myEval(expr: Asdf, env: Env): Value | null {
-    console.log('evaluating: ', expr.toCutreString())
+    console.log('evaluating: ', expr.toCutreString());
     if (expr.isLeaf()) {
         if (expr.atomValue()[0] === '#') return expr;
         return env.lookup(expr.atomValue());
     }
     if (expr.innerValues().length === 0) return null;
     const [raw_first, ...rest] = expr.innerValues();
-    const fn = myEval(raw_first, env);
-    if (fn === null) return null;
-    if (fn instanceof FnkDef) {
-        const params = fn.params.innerValues();
+    const first = myEval(raw_first, env);
+    if (first === null) return null;
+    if (first instanceof FnkDef) {
+        const params = first.params.innerValues();
         if (rest.length !== params.length) return null;
         const new_env = new Env([env]);
         for (let k = 0; k < params.length; k++) {
-            if (fn.typed) {
+            if (first.typed) {
                 const [name, type, ...extra] = params[k].innerValues();
                 if (extra.length > 0) return null;
                 new_env.add(name.atomValue(), rest[k]);
@@ -90,9 +90,9 @@ export function myEval(expr: Asdf, env: Env): Value | null {
                 new_env.add(params[k].atomValue(), rest[k]);
             }
         }
-        return myEval(fn.body, new_env);
+        return myEval(first.body, new_env);
     }
-    else if (fn.isAtom('#apply')) {
+    else if (first.isAtom('#apply')) {
         // (apply car (one two)) -> one
         const [fn2_expr, params, ...extra] = rest;
         if (extra.length > 0) return null;
@@ -100,10 +100,10 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         return myEval(new Asdf([fn2_expr, params]), env);
         // return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
     }
-    else if (fn.isAtom('#list')) {
+    else if (first.isAtom('#list')) {
         const stuff = rest.map(x => myEval(x, env));
         if (stuff.some(x => x === null)) return null;
-        // @ts-ignore
+        // @ts-expect-error No nulls in the array
         return new Asdf(stuff);
     }
     return new Asdf('adios');

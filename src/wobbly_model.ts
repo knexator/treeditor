@@ -71,7 +71,13 @@ export type RawAsdf = string | RawAsdf[];
 export class Asdf {
     constructor(
         public data: string | Asdf[],
-    ) { }
+    ) {
+        if (typeof data === 'string') {
+            if ([' ', '(', ')'].some(forbiden_char => data.includes(forbiden_char))) {
+                throw new Error('spaces or parenthesis in atoms are not supported');
+            }
+        }
+    }
 
     isLeaf(): boolean {
         return typeof this.data === 'string';
@@ -186,9 +192,50 @@ export class Asdf {
         return new Asdf(x.map(v => Asdf.fromRaw(v)));
     }
 
+    equals(other: Asdf): boolean {
+        if (typeof this.data === 'string') {
+            if (typeof other.data === 'string') {
+                return this.data === other.data;
+            }
+            return false;
+        }
+        else {
+            if (typeof other.data === 'string') return false;
+            const other_data = other.data;
+            return this.data.every((v, k) => v.equals(other_data[k]));
+        }
+    }
+
     toCutreString(): string {
         if (typeof this.data === 'string') return this.data;
         return '(' + this.data.map(x => x.toCutreString()).join(' ') + ')';
+    }
+
+    static fromCutreString(s: string): Asdf {
+        function helper(v: string): [Asdf, string] {
+            v = v.trimStart();
+            if (v[0] === '(') {
+                const inner: Asdf[] = [];
+                let remaining = v.slice(1);
+                while (remaining[0] !== ')') {
+                    const [cur, new_remaining] = helper(remaining);
+                    remaining = new_remaining;
+                    inner.push(cur);
+                }
+                return [new Asdf(inner), remaining.slice(1)];
+            }
+            else {
+                let k = 0;
+                while (v[k] !== ' ' && v[k] !== ')' && k < v.length) {
+                    k++;
+                }
+                return [new Asdf(v.slice(0, k)), v.slice(k)];
+            }
+        }
+
+        const [res, extra] = helper(s.trim());
+        if (extra !== '') throw new Error(`unexpected extra stuff after thing: ${extra}`);
+        return res;
     }
 }
 
