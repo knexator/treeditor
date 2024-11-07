@@ -64,6 +64,20 @@ DEFAULT_ENV.add('<?', new BuiltInVau((params: Asdf[], env: Env) => {
     });
     return Asdf.fromBool(numbers[0] < numbers[1]);
 }));
+// @ts-expect-error todo: dont return null
+DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [bindings, body] = params;
+    const new_env = new Env([env]);
+    for (const binding of bindings.innerValues()) {
+        const [formal_tree, value_expr, ...extra] = binding.innerValues();
+        assertEmpty(extra);
+        if (!formal_tree.isLeaf()) throw new Error('TODO: implement formal param trees');
+        // @ts-expect-error todo: dont return null
+        new_env.add(formal_tree.atomValue(), myEval(value_expr, env));
+    }
+    return myEval(body, new_env);
+}));
 
 class FnkDef {
     constructor(
