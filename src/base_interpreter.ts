@@ -47,6 +47,23 @@ DEFAULT_ENV.add('$quote', new BuiltInVau((params: Asdf[], env: Env) => {
 DEFAULT_ENV.add('$list', new BuiltInVau((params: Asdf[], env: Env) => {
     return new Asdf(params);
 }));
+DEFAULT_ENV.add('+', new BuiltInVau((params: Asdf[], env: Env) => {
+    const numbers = params.map((p) => {
+        const v = myEval(p, env);
+        if (!(v instanceof Asdf)) throw new Error('not all values were numbers');
+        return v.numberValue();
+    });
+    return Asdf.fromNumber(numbers.reduce((n, acc) => n + acc, 0));
+}));
+DEFAULT_ENV.add('<?', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const numbers = params.map((p) => {
+        const v = myEval(p, env);
+        if (!(v instanceof Asdf)) throw new Error('not all values were numbers');
+        return v.numberValue();
+    });
+    return Asdf.fromBool(numbers[0] < numbers[1]);
+}));
 
 class FnkDef {
     constructor(

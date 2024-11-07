@@ -139,6 +139,30 @@ export class Asdf {
         return this.data;
     }
 
+    numberValue(): number {
+        const v = this.atomValue();
+        if (v[0] !== '#') throw new Error('not a literal');
+        const n = Number(v.slice(1));
+        if (Number.isNaN(n)) throw new Error('not a number');
+        return n;
+    }
+
+    static fromNumber(n: number): Asdf {
+        return new Asdf('#' + n.toString());
+    }
+
+    boolValue(): boolean {
+        const v = this.atomValue();
+        if (v[0] !== '#') throw new Error('not a literal');
+        if (v === '#true') return true;
+        if (v === '#false') return false;
+        throw new Error('not a boolean');
+    }
+
+    static fromBool(b: boolean): Asdf {
+        return new Asdf(b ? '#true' : '#false');
+    }
+
     insertBefore(address: Address, value: Asdf): Asdf {
         if (address.data.length === 0) throw new Error('bad');
         if (this.isLeaf()) throw new Error('bad');

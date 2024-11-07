@@ -54,6 +54,22 @@ test('built in vaus', () => {
     expect(
         outerEval(Asdf.fromCutre('($list 1 2 3)'), Env.standard()),
     ).toBeLitAsdf('(1 2 3)');
+
+    expect(
+        outerEval(Asdf.fromCutre('(+ #1 #2)'), Env.standard()),
+    ).toBeLitAsdf('#3');
+
+    expect(
+        outerEval(Asdf.fromCutre('(+ (+ #1 #2) #3 #4)'), Env.standard()),
+    ).toBeLitAsdf('#10');
+
+    expect(
+        outerEval(Asdf.fromCutre('(<? (+ #1 #2) #5)'), Env.standard()),
+    ).toBeLitAsdf('#true');
+
+    // expect(
+    //     outerEval(Asdf.fromCutre(`let ...`))
+    // ).toBeLitAsdf('a')
 });
 
 // test('basic eval', () => {
