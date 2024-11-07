@@ -1,7 +1,12 @@
 import { assertEmpty } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
 
-type BuiltInVau = (params: Asdf[], env: Env) => Asdf;
+class BuiltInVau {
+    constructor(
+        public value: (params: Asdf[], env: Env) => Value,
+    ) { }
+}
+
 type Value = Asdf | FnkDef | BuiltInVau;
 
 export class Env {
@@ -32,9 +37,16 @@ export class Env {
 }
 
 const DEFAULT_ENV: Env = new Env([]);
-DEFAULT_ENV.add('$first', (params: Asdf[], env: Env) => {
+DEFAULT_ENV.add('$first', new BuiltInVau((params: Asdf[], env: Env) => {
     return params[0];
-});
+}));
+DEFAULT_ENV.add('$quote', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`$quote expects 1 argument, got ${params.length}`);
+    return params[0];
+}));
+DEFAULT_ENV.add('$list', new BuiltInVau((params: Asdf[], env: Env) => {
+    return new Asdf(params);
+}));
 
 class FnkDef {
     constructor(
@@ -102,21 +114,30 @@ export function myEval(expr: Asdf, env: Env): Value | null {
         }
         return myEval(first.body, new_env);
     }
-    else if (first.isAtom('#apply')) {
-        // (apply car (one two)) -> one
-        const [fn2_expr, params, ...extra] = rest;
-        if (extra.length > 0) return null;
-        // TEMP HACK until params destructuring
-        return myEval(new Asdf([fn2_expr, params]), env);
-        // return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
+    else if (first instanceof BuiltInVau) {
+        return first.value(rest, env);
     }
-    else if (first.isAtom('#list')) {
-        const stuff = rest.map(x => myEval(x, env));
-        if (stuff.some(x => x === null)) return null;
-        // @ts-expect-error No nulls in the array
-        return new Asdf(stuff);
+    else if (first instanceof Asdf) {
+        if (first.isAtom('#apply')) {
+            // (apply car (one two)) -> one
+            const [fn2_expr, params, ...extra] = rest;
+            if (extra.length > 0) return null;
+            // TEMP HACK until params destructuring
+            return myEval(new Asdf([fn2_expr, params]), env);
+            // return myEval(new Asdf([fn2_expr, ...params.innerValues()]), env);
+        }
+        else if (first.isAtom('#list')) {
+            const stuff = rest.map(x => myEval(x, env));
+            if (stuff.some(x => x === null)) return null;
+            // @ts-expect-error No nulls in the array
+            return new Asdf(stuff);
+        }
+        return null;
     }
-    return new Asdf('adios');
+    else {
+        const _: never = first;
+        throw new Error('unreachable');
+    }
 }
 
 function assertAtom(thing: Asdf, expected: string) {

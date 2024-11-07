@@ -42,10 +42,19 @@ test('parsing', () => {
     // expectError(Asdf.fromCutreString(`(hola`));
 });
 
-// test('built in vaus', () => {
-//     expect(
-//         outerEval(Asdf.fromCutre('($first 1 2 3)'), Env.standard())
-// });
+test('built in vaus', () => {
+    expect(
+        outerEval(Asdf.fromCutre('($first 1 2 3)'), Env.standard()),
+    ).toBeLitAsdf('1');
+
+    expect(
+        outerEval(Asdf.fromCutre('($quote (1 2 3))'), Env.standard()),
+    ).toBeLitAsdf('(1 2 3)');
+
+    expect(
+        outerEval(Asdf.fromCutre('($list 1 2 3)'), Env.standard()),
+    ).toBeLitAsdf('(1 2 3)');
+});
 
 // test('basic eval', () => {
 //     const env = envFromToplevel(Asdf.fromCutreString(`(toplevel
