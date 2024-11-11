@@ -140,7 +140,7 @@ function* normal_mode(state: Asdf, selected: Address): Generator<[Asdf, Address,
         else if (input.keyboard.wasPressed(KeyCode.KeyG)) {
             const env = envFromToplevel(state);
             const cur = state.getAt(selected)!;
-            const res = outerEval(new Asdf([new Asdf('KeyG'), cur]), env);
+            const res = outerEval(new Asdf([new Asdf('operate'), new Asdf('KeyG'), new Asdf([new Asdf('$quote'), cur])]), env);
             if (res !== null) {
                 state = state.setAt(selected, res);
             }
@@ -294,7 +294,7 @@ const editor_coroutine = normal_mode(
     Asdf.fromRaw(['toplevel',
         ['hello', 'world'],
         ['$define!', 'hello', ['$vau', ['world'], '_', 'world']],
-        ['$define!', 'KeyG', ['$vau', [['a', 'b']], '_', 'a']],
+        ['$define!', 'KeyG', ['$vau', ['a', 'b'], '_', 'a']],
         // ['$define!', 'KeyG', ['$vau', [['a', 'b']], '_', 'a']],
         // ['list', ['$quote', '$if'], '#true', 'a', 'a']],
         // ['def', 'KeyG', ['a', 'b'],

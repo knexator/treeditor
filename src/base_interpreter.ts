@@ -107,6 +107,24 @@ DEFAULT_ENV.add('$sequence', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     return last_value;
 }));
+DEFAULT_ENV.add('operate', new BuiltInVau((params: Asdf[], env: Env) => {
+    // (operate $first ($quote (a b c))) == a
+    const [operand_expr, params_expr, ...extra] = params;
+    if (extra.length > 1) throw new Error('expected 2 or 3 params');
+    const operand_to_use = myEval(operand_expr, env);
+    const params_to_use = myEval(params_expr, env);
+    const env_to_use = (extra.length === 0) ? env : myEval(extra[0], env);
+    if (!(env_to_use instanceof Env)) throw new Error('expected an Env');
+    if (operand_to_use instanceof BuiltInVau) {
+        if (!(params_to_use instanceof Asdf)) throw new Error('params are not an Asdf');
+        console.log('hola', params_to_use);
+        if (params_to_use.isLeaf()) throw new Error('TODO: allow a single param');
+        return operand_to_use.value(params_to_use.innerValues(), env_to_use);
+    }
+    else {
+        throw new Error('not an operand');
+    }
+}));
 
 class FnkDef {
     constructor(
