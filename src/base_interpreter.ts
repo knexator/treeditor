@@ -71,8 +71,7 @@ DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
     for (const binding of bindings.innerValues()) {
         const [formal_tree, value_expr, ...extra] = binding.innerValues();
         assertEmpty(extra);
-        if (!formal_tree.isLeaf()) throw new Error('TODO: implement formal param trees');
-        new_env.add(formal_tree.atomValue(), myEval(value_expr, env));
+        matchBindings(formal_tree, myEval(value_expr, env), new_env);
     }
     return myEval(body, new_env);
 }));
@@ -91,6 +90,20 @@ DEFAULT_ENV.add('$vau', new BuiltInVau((params: Asdf[], env: Env) => {
         }
         return myEval(body, new_env);
     });
+}));
+DEFAULT_ENV.add('$define!', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 3 params`);
+    const [formal_tree, value_expr] = params;
+    const value = myEval(value_expr, env);
+    matchBindings(formal_tree, value, env);
+    return new Asdf('#inert');
+}));
+DEFAULT_ENV.add('$sequence', new BuiltInVau((params: Asdf[], env: Env) => {
+    let last_value: Value = new Asdf('#inert');
+    for (const expr of params) {
+        last_value = myEval(expr, env);
+    }
+    return last_value;
 }));
 
 class FnkDef {
@@ -188,15 +201,16 @@ export function myEval(expr: Asdf, env: Env): Value {
     }
 }
 
-function matchBindings(formal_tree: Asdf, params: Asdf, env_to_add_stuff: Env): void {
+function matchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: Env): void {
     if (formal_tree.isLeaf()) {
         if (formal_tree.atomValue() !== '_') {
-            env_to_add_stuff.add(formal_tree.atomValue(), params);
+            env_to_add_stuff.add(formal_tree.atomValue(), value);
         }
     }
     else {
         const tree_ins = formal_tree.innerValues();
-        const params_ins = params.innerValues();
+        if (!(value instanceof Asdf)) throw new Error('Can\'t do nested stuff with a non-Asdf value');
+        const params_ins = value.innerValues();
         if (params_ins.length !== tree_ins.length) throw new Error('bad number of params');
         for (const [tree, param] of zip2(tree_ins, params_ins)) {
             matchBindings(tree, param, env_to_add_stuff);
