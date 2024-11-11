@@ -120,22 +120,13 @@ class FnkDef {
 export function envFromToplevel(expr: Asdf): Env {
     const [toplevel, ...defs] = expr.innerValues();
     assertAtom(toplevel, 'toplevel');
-    const result = new Env([]);
-    for (const def of defs) {
-        if (def.isLeaf()) continue;
-        if (def.innerValues().length === 0) continue;
-        const first = def.innerValues()[0];
-        if (first.isAtom('fn')) {
-            const [fn, fn_name, params, return_type, body, ...extra] = def.innerValues();
-            assertAtom(fn, 'fn');
-            assertEmpty(extra);
-            result.add(fn_name.atomValue(), new FnkDef(true, params, return_type, body));
+    const result = Env.standard();
+    for (const expr of defs) {
+        try {
+            myEval(expr, result);
         }
-        else if (first.isAtom('def')) {
-            const [fn, fn_name, params, body, ...extra] = def.innerValues();
-            assertAtom(fn, 'def');
-            assertEmpty(extra);
-            result.add(fn_name.atomValue(), new FnkDef(false, params, new Asdf('TODO:-simplify-this'), body));
+        catch {
+            // nothing
         }
     }
     return result;
