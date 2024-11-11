@@ -44,8 +44,10 @@ DEFAULT_ENV.add('$quote', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`$quote expects 1 argument, got ${params.length}`);
     return params[0];
 }));
-DEFAULT_ENV.add('$list', new BuiltInVau((params: Asdf[], env: Env) => {
-    return new Asdf(params);
+DEFAULT_ENV.add('list', new BuiltInVau((params: Asdf[], env: Env) => {
+    const vals = params.map(e => myEval(e, env));
+    // @ts-expect-error TODO
+    return new Asdf(vals);
 }));
 DEFAULT_ENV.add('+', new BuiltInVau((params: Asdf[], env: Env) => {
     const numbers = params.map((p) => {
