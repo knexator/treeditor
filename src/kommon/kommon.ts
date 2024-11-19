@@ -286,8 +286,8 @@ export function addAt<T>(arr: T[], new_element: T, index: number): T[] {
     return result;
 }
 
-export function assertNotNull<T>(element: T | null): T {
-    if (element === null) throw new Error('assertNotNull got a null');
+export function assertNotNull<T>(element: T | null, message?: string): T {
+    if (element === null) throw new Error(message ?? 'assertNotNull got a null');
     return element;
 }
 

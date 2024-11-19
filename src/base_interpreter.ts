@@ -88,8 +88,19 @@ DEFAULT_ENV.add('$vau', new BuiltInVau((params: Asdf[], env: Env) => {
         const new_env = new Env([env]);
         matchBindings(formal_tree, new Asdf(vau_params), new_env);
         if (env_name !== '_') {
-            new_env.add('_', vau_env);
+            new_env.add(env_name, vau_env);
         }
+        return myEval(body, new_env);
+    });
+}));
+DEFAULT_ENV.add('$lambda', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [formal_tree, body] = params;
+    return new BuiltInVau((lambda_params: Asdf[], lambda_env: Env) => {
+        const new_env = new Env([env]);
+        const evaluated_params = lambda_params.map(p => myEval(p, lambda_env));
+        // @ts-expect-error TODO: allow user code to return Values, not just Asdfs
+        matchBindings(formal_tree, new Asdf(evaluated_params), new_env);
         return myEval(body, new_env);
     });
 }));
@@ -167,7 +178,7 @@ export function myEval(expr: Asdf, env: Env): Value {
     console.log('evaluating: ', expr.toCutreString());
     if (expr.isLeaf()) {
         if (expr.atomValue()[0] === '#') return expr;
-        return assertNotNull(env.lookup(expr.atomValue()));
+        return assertNotNull(env.lookup(expr.atomValue()), `undefined variable: ${expr.atomValue()}`);
     }
     const [raw_first, ...rest] = expr.innerValues();
     const first = myEval(raw_first, env);

@@ -79,6 +79,12 @@ test('built in vaus', () => {
         outerEval(Asdf.fromCutre(`($sequence ($define! x (+ #1 #2)) x)`), Env.standard()),
     ).toBeLitAsdf('#3');
 
+    expect(
+        outerEval(Asdf.fromCutre(`($sequence 
+            ($define! inc ($lambda (x) (+ #1 x)))
+            (inc (+ #1 #2)))`), Env.standard()),
+    ).toBeLitAsdf('#4');
+
     // like apply but for operatives
     expect(
         outerEval(Asdf.fromCutre('(operate $first ($quote (a b c)))'), Env.standard()),
