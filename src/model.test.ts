@@ -68,6 +68,10 @@ test('built in vaus', () => {
     ).toBeLitAsdf('#true');
 
     expect(
+        outerEval(Asdf.fromCutre('(chars #hola)'), Env.standard()),
+    ).toBeLitAsdf('(#h #o #l #a)');
+
+    expect(
         outerEval(Asdf.fromCutre(`($let ( (x #1) (y (+ #2 #3)) ) (+ x y))`), Env.standard()),
     ).toBeLitAsdf('#6');
 

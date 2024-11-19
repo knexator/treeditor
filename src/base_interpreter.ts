@@ -105,7 +105,7 @@ DEFAULT_ENV.add('$lambda', new BuiltInVau((params: Asdf[], env: Env) => {
     });
 }));
 DEFAULT_ENV.add('$define!', new BuiltInVau((params: Asdf[], env: Env) => {
-    if (params.length !== 2) throw new Error(`expected 3 params`);
+    if (params.length !== 2) throw new Error(`expected 2 params`);
     const [formal_tree, value_expr] = params;
     const value = myEval(value_expr, env);
     matchBindings(formal_tree, value, env);
@@ -136,6 +136,77 @@ DEFAULT_ENV.add('operate', new BuiltInVau((params: Asdf[], env: Env) => {
         throw new Error('not an operand');
     }
 }));
+DEFAULT_ENV.add('=?', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [lhs, rhs] = params.map(p => myEval(p, env));
+    if (lhs instanceof Asdf && rhs instanceof Asdf) {
+        return Asdf.fromBool(lhs.equals(rhs));
+    }
+    throw new Error('bad params');
+}));
+DEFAULT_ENV.add('atom?', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return Asdf.fromBool(val.isLeaf());
+    }
+    throw new Error('bad params');
+}));
+DEFAULT_ENV.add('in?', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [val, list] = params.map(p => asAsdf(myEval(p, env)));
+    for (const v of list.innerValues()) {
+        if (val.equals(v)) return Asdf.fromBool(true);
+    }
+    return Asdf.fromBool(false);
+}));
+DEFAULT_ENV.add('first', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return val.innerValues()[0];
+    }
+    throw new Error('bad params');
+}));
+DEFAULT_ENV.add('second', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return val.innerValues()[1];
+    }
+    throw new Error('bad params');
+}));
+DEFAULT_ENV.add('rest', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return new Asdf(val.innerValues().slice(1));
+    }
+    throw new Error('bad params');
+}));
+DEFAULT_ENV.add('chars', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return Asdf.fromRaw(val.stringValue().split('').map(c => '#' + c));
+    }
+    throw new Error('bad params');
+}));
+DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
+    for (const clause of params) {
+        const [cond, body, ...extra] = clause.innerValues();
+        if (extra.length > 0) throw new Error('bad params');
+        if (asAsdf(myEval(cond, env)).boolValue()) {
+            return myEval(body, env);
+        }
+    }
+    return new Asdf('#inert');
+}));
+
+function asAsdf(v: Value): Asdf {
+    if (v instanceof Asdf) return v;
+    throw new Error('bad param');
+}
 
 class FnkDef {
     constructor(
@@ -173,7 +244,7 @@ export function outerEval(expr: Asdf, env: Env): Asdf | null {
     }
 }
 
-// TODO: lambda params destructuring
+// TODO: remove FnkDef
 export function myEval(expr: Asdf, env: Env): Value {
     // console.log('evaluating: ', expr.toCutreString());
     if (expr.isLeaf()) {

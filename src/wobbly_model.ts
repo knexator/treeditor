@@ -151,12 +151,18 @@ export class Asdf {
         return new Asdf('#' + n.toString());
     }
 
+    stringValue(): string {
+        const v = this.atomValue();
+        if (v[0] !== '#') throw new Error('not a literal');
+        return v.slice(1);
+    }
+
     boolValue(): boolean {
         const v = this.atomValue();
         if (v[0] !== '#') throw new Error('not a literal');
         if (v === '#true') return true;
         if (v === '#false') return false;
-        throw new Error('not a boolean');
+        throw new Error(`not a boolean: ${v}`);
     }
 
     static fromBool(b: boolean): Asdf {
