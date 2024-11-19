@@ -175,7 +175,7 @@ export function outerEval(expr: Asdf, env: Env): Asdf | null {
 
 // TODO: lambda params destructuring
 export function myEval(expr: Asdf, env: Env): Value {
-    console.log('evaluating: ', expr.toCutreString());
+    // console.log('evaluating: ', expr.toCutreString());
     if (expr.isLeaf()) {
         if (expr.atomValue()[0] === '#') return expr;
         return assertNotNull(env.lookup(expr.atomValue()), `undefined variable: ${expr.atomValue()}`);
