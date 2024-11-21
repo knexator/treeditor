@@ -3,10 +3,16 @@
         ($cond
             ((atom? peg)                        (=? peg text))
             ((=? #set (first peg))              (in? text (chars (second peg))))
+            ((=? #sequence (first peg))         #todo)
+            ((=? #some (first peg))             #todo, maybe: (peg/matches? (second peg) text))
             (#true                              #error-bad-peg))))
     (list
         (peg/matches? ($quote hola) #hola)
         (peg/matches? ($quote hola) #buenas)
         (peg/matches? ($quote (set 1234)) #2)
         (peg/matches? ($quote (set 1234)) #6)
+        (peg/matches? ($quote (sequence na na)) #nana)
+        (peg/matches? ($quote (sequence na na)) #nano)
+        (peg/matches? ($quote (sequence (some na) no)) #nanano)
+        (peg/matches? ($quote (sequence (some na) no)) #nonano)
     ))
