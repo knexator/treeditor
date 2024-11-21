@@ -192,6 +192,14 @@ DEFAULT_ENV.add('chars', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     throw new Error('bad params');
 }));
+DEFAULT_ENV.add('join', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return Asdf.fromRaw(val.innerValues().map(v => v.atomValue()).join(''));
+    }
+    throw new Error('bad params');
+}));
 DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
     for (const clause of params) {
         const [cond, body, ...extra] = clause.innerValues();

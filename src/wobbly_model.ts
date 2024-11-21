@@ -134,7 +134,7 @@ export class Asdf {
     }
 
     atomValue(): string {
-        if (!this.isLeaf()) throw new Error('not an atom');
+        if (!this.isLeaf()) throw new Error(`not an atom: ${this.toCutreString()}`);
         if (typeof this.data !== 'string') throw new Error('unreachable');
         return this.data;
     }
