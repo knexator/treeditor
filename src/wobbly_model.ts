@@ -140,33 +140,24 @@ export class Asdf {
     }
 
     numberValue(): number {
-        const v = this.atomValue();
-        if (v[0] !== '#') throw new Error('not a literal');
-        const n = Number(v.slice(1));
+        const n = Number(this.atomValue());
         if (Number.isNaN(n)) throw new Error('not a number');
         return n;
     }
 
     static fromNumber(n: number): Asdf {
-        return new Asdf('#' + n.toString());
-    }
-
-    stringValue(): string {
-        const v = this.atomValue();
-        if (v[0] !== '#') throw new Error('not a literal');
-        return v.slice(1);
+        return new Asdf(n.toString());
     }
 
     boolValue(): boolean {
         const v = this.atomValue();
-        if (v[0] !== '#') throw new Error('not a literal');
-        if (v === '#true') return true;
-        if (v === '#false') return false;
+        if (v === 'true') return true;
+        if (v === 'false') return false;
         throw new Error(`not a boolean: ${v}`);
     }
 
     static fromBool(b: boolean): Asdf {
-        return new Asdf(b ? '#true' : '#false');
+        return new Asdf(b ? 'true' : 'false');
     }
 
     insertBefore(address: Address, value: Asdf): Asdf {

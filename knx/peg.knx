@@ -5,8 +5,8 @@
             ((=? ($quote set) (first peg))      (in? text (chars (second peg))))
             (#true                              #error-bad-peg))))
     (list
-        (peg/matches? ($quote #hola) #hola)
-        (peg/matches? ($quote #hola) #buenas)
+        (peg/matches? ($quote hola) #hola)
+        (peg/matches? ($quote hola) #buenas)
         (peg/matches? ($quote (set #1234)) #3)
         (peg/matches? ($quote (set #1234)) #6)
     ))

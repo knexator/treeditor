@@ -14,6 +14,10 @@ expect.extend({
         }
     },
     toBeLitAsdf(received: Asdf, expected: string) {
+        if (!(received instanceof Asdf)) {
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            return { pass: false, message: () => `Got something weird: ${received}` };
+        }
         if (received.equals(Asdf.fromCutre(expected))) {
             return { pass: true, message: () => 'yes' };
         }
@@ -53,27 +57,27 @@ test('built in vaus', () => {
 
     expect(
         outerEval(Asdf.fromCutre('(list #1 #2 #3)'), Env.standard()),
-    ).toBeLitAsdf('(#1 #2 #3)');
+    ).toBeLitAsdf('(1 2 3)');
 
     expect(
         outerEval(Asdf.fromCutre('(+ #1 #2)'), Env.standard()),
-    ).toBeLitAsdf('#3');
+    ).toBeLitAsdf('3');
 
     expect(
         outerEval(Asdf.fromCutre('(+ (+ #1 #2) #3 #4)'), Env.standard()),
-    ).toBeLitAsdf('#10');
+    ).toBeLitAsdf('10');
 
     expect(
         outerEval(Asdf.fromCutre('(<? (+ #1 #2) #5)'), Env.standard()),
-    ).toBeLitAsdf('#true');
+    ).toBeLitAsdf('true');
 
     expect(
         outerEval(Asdf.fromCutre('(chars #hola)'), Env.standard()),
-    ).toBeLitAsdf('(#h #o #l #a)');
+    ).toBeLitAsdf('(h o l a)');
 
     expect(
         outerEval(Asdf.fromCutre(`($let ( (x #1) (y (+ #2 #3)) ) (+ x y))`), Env.standard()),
-    ).toBeLitAsdf('#6');
+    ).toBeLitAsdf('6');
 
     expect(
         outerEval(Asdf.fromCutre(`($let ( ($firstSecond ($vau (a (b c) d) _ b)) ) ($firstSecond (1 2) (3 4) (5 6)))`), Env.standard()),
@@ -81,13 +85,13 @@ test('built in vaus', () => {
 
     expect(
         outerEval(Asdf.fromCutre(`($sequence ($define! x (+ #1 #2)) x)`), Env.standard()),
-    ).toBeLitAsdf('#3');
+    ).toBeLitAsdf('3');
 
     expect(
         outerEval(Asdf.fromCutre(`($sequence 
             ($define! inc ($lambda (x) (+ #1 x)))
             (inc (+ #1 #2)))`), Env.standard()),
-    ).toBeLitAsdf('#4');
+    ).toBeLitAsdf('4');
 
     // like apply but for operatives
     expect(

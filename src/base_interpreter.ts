@@ -188,7 +188,7 @@ DEFAULT_ENV.add('chars', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => myEval(p, env));
     if (val instanceof Asdf) {
-        return Asdf.fromRaw(val.stringValue().split('').map(c => '#' + c));
+        return Asdf.fromRaw(val.atomValue().split(''));
     }
     throw new Error('bad params');
 }));
@@ -248,7 +248,7 @@ export function outerEval(expr: Asdf, env: Env): Asdf | null {
 export function myEval(expr: Asdf, env: Env): Value {
     // console.log('evaluating: ', expr.toCutreString());
     if (expr.isLeaf()) {
-        if (expr.atomValue()[0] === '#') return expr;
+        if (expr.atomValue()[0] === '#') return new Asdf(expr.atomValue().slice(1));
         return assertNotNull(env.lookup(expr.atomValue()), `undefined variable: ${expr.atomValue()}`);
     }
     const [raw_first, ...rest] = expr.innerValues();
