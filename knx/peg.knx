@@ -26,6 +26,12 @@
                                                                     ($if is-valid
                                                                         (helper peg remaining-chars)
                                                                         (list #true text_chars)))))
+                ((=? #some (first peg))              ($let (( (is-valid remaining-chars) (helper (second peg) text_chars ) ))  
+                                                                ($if (=? is-valid #error-bad-peg)
+                                                                    (list #error-bad-peg #inert)
+                                                                    ($if is-valid
+                                                                        (helper (list #any (second peg)) remaining-chars)
+                                                                        (list #false #inert)))))
                 (#true                              (list #error-bad-peg #inert))))))
             (first (helper peg (chars text))))))
     (list
