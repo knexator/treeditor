@@ -1,3 +1,15 @@
 ($sequence
-    (load #./peg.knx))
-    // ($import (get-module #./peg.knx )))
+    ($import! (peg/matches?) (get-module #./peg.knx))
+    (list
+        (peg/matches? ($quote hola) #holabuenas)
+        (peg/matches? ($quote hola) #hobuenas)
+        (peg/matches? ($quote (set 1234)) #2)
+        (peg/matches? ($quote (set 1234)) #6)
+        (peg/matches? ($quote (sequence na no)) #nano)
+        (peg/matches? ($quote (sequence na no)) #nana)
+        (peg/matches? ($quote (sequence (any na) no)) #nanano)
+        (peg/matches? ($quote (sequence (any na) na no)) #nano)
+        (peg/matches? ($quote (sequence (some na) no)) #nanano)
+        (peg/matches? ($quote (sequence (some na) no)) #nonano)
+    )
+)

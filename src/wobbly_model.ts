@@ -160,6 +160,10 @@ export class Asdf {
         return new Asdf(b ? 'true' : 'false');
     }
 
+    static inert(): Asdf {
+        return new Asdf('inert');
+    }
+
     insertBefore(address: Address, value: Asdf): Asdf {
         if (address.data.length === 0) throw new Error('bad');
         if (this.isLeaf()) throw new Error('bad');
@@ -239,6 +243,7 @@ export class Asdf {
                 v = v.slice(v.search('\n'));
                 v = v.trimStart();
             }
+            if (v.length === 0) throw new Error('ran out of input');
             if (v[0] === '(') {
                 const inner: Asdf[] = [];
                 let remaining = v.slice(1).trimStart();

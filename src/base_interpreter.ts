@@ -150,10 +150,18 @@ DEFAULT_ENV.add('$define!', new BuiltInVau((params: Asdf[], env: Env) => {
     const [formal_tree, value_expr] = params;
     const value = myEval(value_expr, env);
     matchBindings(formal_tree, value, env);
-    return new Asdf('#inert');
+    return Asdf.inert();
+}));
+DEFAULT_ENV.add('$set!', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 3) throw new Error(`expected 3 params`);
+    const [env_expr, formal_tree, value_expr] = params;
+    const env_to_modify = asEnv(myEval(env_expr, env));
+    const value = myEval(value_expr, env);
+    matchBindings(formal_tree, value, env_to_modify);
+    return Asdf.inert();
 }));
 DEFAULT_ENV.add('$sequence', new BuiltInVau((params: Asdf[], env: Env) => {
-    let last_value: Value = new Asdf('#inert');
+    let last_value: Value = Asdf.inert();
     for (const expr of params) {
         last_value = myEval(expr, env);
     }
@@ -165,8 +173,7 @@ DEFAULT_ENV.add('operate', new BuiltInVau((params: Asdf[], env: Env) => {
     if (extra.length > 1) throw new Error('expected 2 or 3 params');
     const operand_to_use = myEval(operand_expr, env);
     const params_to_use = myEval(params_expr, env);
-    const env_to_use = (extra.length === 0) ? env : myEval(extra[0], env);
-    if (!(env_to_use instanceof Env)) throw new Error('expected an Env');
+    const env_to_use = (extra.length === 0) ? env : asEnv(myEval(extra[0], env));
     if (operand_to_use instanceof BuiltInVau) {
         if (!(params_to_use instanceof Asdf)) throw new Error('params are not an Asdf');
         if (params_to_use.isLeaf()) throw new Error('TODO: allow a single param');
@@ -261,7 +268,7 @@ DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
             return myEval(body, env);
         }
     }
-    // return new Asdf('#inert');
+    // return Asdf.inert();
     throw new Error('no valid cond!');
 }));
 DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
@@ -285,9 +292,60 @@ DEFAULT_ENV.add('load', new BuiltInVau((params: Asdf[], env: Env) => {
     const main = Asdf.fromCutre(fileContents);
     return main;
 }));
+DEFAULT_ENV.add('get-current-env', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length > 0) throw new Error(`expected no params`);
+    return env;
+}));
+DEFAULT_ENV.add('make-standard-env', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length > 0) throw new Error(`expected no params`);
+    return Env.standard();
+}));
+DEFAULT_ENV.add('eval', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [expr, env_to_use] = params.map(p => myEval(p, env));
+    return myEval(asAsdf(expr), asEnv(env_to_use));
+}));
+DEFAULT_ENV.add('$provide!', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [symbols, expr] = params;
+    const new_env = new Env([env]);
+    myEval(expr, new_env);
+    for (const symbol_name of symbols.innerValues()) {
+        if (!symbol_name.isLeaf()) {
+            throw new Error('bad params');
+        }
+        matchBindings(symbol_name, myEval(symbol_name, new_env), env);
+    }
+    return Asdf.inert();
+}));
+DEFAULT_ENV.add('$import!', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [symbols, expr] = params;
+    const new_env = asEnv(myEval(expr, env));
+    for (const symbol_name of symbols.innerValues()) {
+        if (!symbol_name.isLeaf()) {
+            throw new Error('bad params');
+        }
+        matchBindings(symbol_name, myEval(symbol_name, new_env), env);
+    }
+    return Asdf.inert();
+}));
+DEFAULT_ENV.add('get-module', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const file_name = asAsdf(myEval(params[0], env)).atomValue();
+    const new_env = Env.standard();
+    const file_contents = asAsdf(myEval(Asdf.fromRaw(['load', '#' + file_name]), env));
+    myEval(file_contents, new_env);
+    return new_env;
+}));
 
 function asAsdf(v: Value): Asdf {
     if (v instanceof Asdf) return v;
+    throw new Error('bad param');
+}
+
+function asEnv(v: Value): Env {
+    if (v instanceof Env) return v;
     throw new Error('bad param');
 }
 
