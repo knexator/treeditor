@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { assertEmpty, assertNotNull, zip2 } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
 
@@ -273,6 +276,14 @@ DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
         }
     }
     throw new Error('could not match!');
+}));
+DEFAULT_ENV.add('load', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    const resolvedPath = path.resolve(asAsdf(env.lookup('__file__')!).atomValue(), '..', val.atomValue());
+    const fileContents = fs.readFileSync(resolvedPath, 'utf8');
+    const main = Asdf.fromCutre(fileContents);
+    return main;
 }));
 
 function asAsdf(v: Value): Asdf {
