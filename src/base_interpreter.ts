@@ -202,6 +202,14 @@ DEFAULT_ENV.add('withHead', new BuiltInVau((params: Asdf[], env: Env) => {
     const [val, list] = params.map(p => asAsdf(myEval(p, env)));
     return new Asdf([val, ...list.innerValues()]);
 }));
+DEFAULT_ENV.add('len', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => myEval(p, env));
+    if (val instanceof Asdf) {
+        return Asdf.fromNumber(val.innerValues().length);
+    }
+    throw new Error('bad params');
+}));
 DEFAULT_ENV.add('first', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => myEval(p, env));

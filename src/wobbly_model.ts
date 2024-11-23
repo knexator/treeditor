@@ -128,7 +128,7 @@ export class Asdf {
     }
 
     innerValues(): Asdf[] {
-        if (this.isLeaf()) throw new Error('not a list');
+        if (this.isLeaf()) throw new Error(`not a list: ${this.atomValue()}`);
         if (typeof this.data === 'string') throw new Error('unreachable');
         return this.data;
     }
