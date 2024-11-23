@@ -235,6 +235,10 @@ export class Asdf {
     static fromCutre(s: string): Asdf {
         function helper(v: string): [Asdf, string] {
             v = v.trimStart();
+            while (v[0] === '/' && v[1] === '/') {
+                v = v.slice(v.search('\n'));
+                v = v.trimStart();
+            }
             if (v[0] === '(') {
                 const inner: Asdf[] = [];
                 let remaining = v.slice(1).trimStart();
