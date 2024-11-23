@@ -258,7 +258,19 @@ export class Asdf {
             }
         }
 
-        const [res, extra] = helper(s.trim());
+        // eslint-disable-next-line prefer-const
+        let [res, extra] = helper(s.trim());
+        extra = extra.trimStart();
+        while (extra.length > 0 && extra[0] === '/' && extra[1] === '/') {
+            const next_break = extra.search('\n');
+            if (next_break !== -1) {
+                extra = extra.slice(extra.search('\n'));
+                extra = extra.trimStart();
+            }
+            else {
+                extra = '';
+            }
+        }
         if (extra !== '') throw new Error(`unexpected extra stuff after thing: ${extra}`);
         return res;
     }

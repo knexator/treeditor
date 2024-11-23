@@ -45,9 +45,11 @@ test('parsing', () => {
 
     // expectError(Asdf.fromCutreString(`(hola`));
 
+    expect(Asdf.fromCutre('hola // coment')).toBeLitAsdf('hola');
+
     expect(Asdf.fromCutre(`(hola 
                     muy  // commented line
-                buenas   )`)).toBeAsdf(Asdf.fromRaw(['hola', 'muy', 'buenas']));
+                buenas   ) // extra`)).toBeAsdf(Asdf.fromRaw(['hola', 'muy', 'buenas']));
 });
 
 test('built in vaus', () => {
