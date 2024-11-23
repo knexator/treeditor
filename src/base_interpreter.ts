@@ -128,7 +128,6 @@ DEFAULT_ENV.add('operate', new BuiltInVau((params: Asdf[], env: Env) => {
     if (!(env_to_use instanceof Env)) throw new Error('expected an Env');
     if (operand_to_use instanceof BuiltInVau) {
         if (!(params_to_use instanceof Asdf)) throw new Error('params are not an Asdf');
-        console.log('hola', params_to_use);
         if (params_to_use.isLeaf()) throw new Error('TODO: allow a single param');
         return operand_to_use.value(params_to_use.innerValues(), env_to_use);
     }
