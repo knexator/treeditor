@@ -72,6 +72,10 @@ test('built in vaus', () => {
     ).toBeLitAsdf('true');
 
     expect(
+        outerEval(Asdf.fromCutre('($if (<? (+ #1 #2) #5) #yay #nay)'), Env.standard()),
+    ).toBeLitAsdf('yay');
+
+    expect(
         outerEval(Asdf.fromCutre('(chars #hola)'), Env.standard()),
     ).toBeLitAsdf('(h o l a)');
 
@@ -96,6 +100,10 @@ test('built in vaus', () => {
             ($define! inc ($lambda (x) (+ #1 x)))
             (inc (+ #1 #2)))`), Env.standard()),
     ).toBeLitAsdf('4');
+
+    expect(
+        outerEval(Asdf.fromCutre(`($letrec ((fact ($lambda (n) ($if (<? n #2) #1 (* n (fact (- n #1))))))) (fact #4))`), Env.standard()),
+    ).toBeLitAsdf('24');
 
     // like apply but for operatives
     expect(

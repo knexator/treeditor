@@ -1,11 +1,13 @@
 ($sequence
     ($define! peg/matches? ($lambda (peg text)
-        ($cond
-            ((atom? peg)                        (=? peg text))
-            ((=? #set (first peg))              (in? text (chars (second peg))))
-            ((=? #sequence (first peg))         #todo)
-            ((=? #some (first peg))             #todo, maybe: (peg/matches? (second peg) text))
-            (#true                              #error-bad-peg))))
+        ($letrec ((helper ($lambda (peg text_chars)
+            ($cond
+                ((atom? peg)                        (helper (withHead #sequence (chars peg)) text_chars))
+                ((=? #set (first peg))              (in? text (chars (second peg))))
+                ((=? #sequence (first peg))         #todo)
+                ((=? #some (first peg))             #todo, maybe: (peg/matches? (second peg) text))
+                (#true                              #error-bad-peg)))))
+            (helper peg (chars text)))))
     (list
         (peg/matches? ($quote hola) #hola)
         (peg/matches? ($quote hola) #buenas)

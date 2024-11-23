@@ -57,6 +57,23 @@ DEFAULT_ENV.add('+', new BuiltInVau((params: Asdf[], env: Env) => {
     });
     return Asdf.fromNumber(numbers.reduce((n, acc) => n + acc, 0));
 }));
+DEFAULT_ENV.add('*', new BuiltInVau((params: Asdf[], env: Env) => {
+    const numbers = params.map((p) => {
+        const v = myEval(p, env);
+        if (!(v instanceof Asdf)) throw new Error('not all values were numbers');
+        return v.numberValue();
+    });
+    return Asdf.fromNumber(numbers.reduce((n, acc) => n * acc, 1));
+}));
+DEFAULT_ENV.add('-', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const numbers = params.map((p) => {
+        const v = myEval(p, env);
+        if (!(v instanceof Asdf)) throw new Error('not all values were numbers');
+        return v.numberValue();
+    });
+    return Asdf.fromNumber(numbers[0] - numbers[1]);
+}));
 DEFAULT_ENV.add('<?', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
     const numbers = params.map((p) => {
@@ -66,6 +83,16 @@ DEFAULT_ENV.add('<?', new BuiltInVau((params: Asdf[], env: Env) => {
     });
     return Asdf.fromBool(numbers[0] < numbers[1]);
 }));
+DEFAULT_ENV.add('$if', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 3) throw new Error(`expected 3 params`);
+    const [cond, if_true, if_false] = params;
+    if (asAsdf(myEval(cond, env)).boolValue()) {
+        return myEval(if_true, env);
+    }
+    else {
+        return myEval(if_false, env);
+    }
+}));
 DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
     const [bindings, body] = params;
@@ -74,6 +101,17 @@ DEFAULT_ENV.add('$let', new BuiltInVau((params: Asdf[], env: Env) => {
         const [formal_tree, value_expr, ...extra] = binding.innerValues();
         assertEmpty(extra);
         matchBindings(formal_tree, myEval(value_expr, env), new_env);
+    }
+    return myEval(body, new_env);
+}));
+DEFAULT_ENV.add('$letrec', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [bindings, body] = params;
+    const new_env = new Env([env]);
+    for (const binding of bindings.innerValues()) {
+        const [formal_tree, value_expr, ...extra] = binding.innerValues();
+        assertEmpty(extra);
+        matchBindings(formal_tree, myEval(value_expr, new_env), new_env);
     }
     return myEval(body, new_env);
 }));
@@ -158,6 +196,11 @@ DEFAULT_ENV.add('in?', new BuiltInVau((params: Asdf[], env: Env) => {
         if (val.equals(v)) return Asdf.fromBool(true);
     }
     return Asdf.fromBool(false);
+}));
+DEFAULT_ENV.add('withHead', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [val, list] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf([val, ...list.innerValues()]);
 }));
 DEFAULT_ENV.add('first', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
