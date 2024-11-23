@@ -1,2 +1,3 @@
 @echo off
-npx tsx ./src/knx.ts %*
+@REM npx tsx ./src/knx.ts %*
+bun ./src/knx.ts %*
