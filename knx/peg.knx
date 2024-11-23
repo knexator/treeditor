@@ -15,23 +15,20 @@
                                                         ($if (=? #0 (len rest-of-pegs))
                                                             (list #true text_chars)  
                                                             ($let (( (is-first-valid remaining-chars) (helper (first rest-of-pegs) text_chars ) ))  
-                                                                ($if (=? is-first-valid #error-bad-peg)
-                                                                    (list #error-bad-peg #inert)
-                                                                    ($if is-first-valid
-                                                                        (helper (withHead #sequence (rest rest-of-pegs)) remaining-chars)
-                                                                        (list #false #inert)))))))
+                                                                ($match is-first-valid
+                                                                    (#error-bad-peg     (list #error-bad-peg #inert))
+                                                                    (#true              (helper (withHead #sequence (rest rest-of-pegs)) remaining-chars))
+                                                                    (#false             (list #false #inert)))))))
                 ((=? #any (first peg))              ($let (( (is-valid remaining-chars) (helper (second peg) text_chars ) ))  
-                                                                ($if (=? is-valid #error-bad-peg)
-                                                                    (list #error-bad-peg #inert)
-                                                                    ($if is-valid
-                                                                        (helper peg remaining-chars)
-                                                                        (list #true text_chars)))))
+                                                        ($match is-valid
+                                                            (#error-bad-peg         (list #error-bad-peg #inert))
+                                                            (#true                  (helper peg remaining-chars))
+                                                            (#false                 (list #true text_chars)))))
                 ((=? #some (first peg))              ($let (( (is-valid remaining-chars) (helper (second peg) text_chars ) ))  
-                                                                ($if (=? is-valid #error-bad-peg)
-                                                                    (list #error-bad-peg #inert)
-                                                                    ($if is-valid
-                                                                        (helper (list #any (second peg)) remaining-chars)
-                                                                        (list #false #inert)))))
+                                                        ($match is-valid
+                                                            (#error-bad-peg         (list #error-bad-peg #inert))
+                                                            (#true                  (helper (list #any (second peg)) remaining-chars))
+                                                            (#false                 (list #false #inert)))))
                 (#true                              (list #error-bad-peg #inert))))))
             (first (helper peg (chars text))))))
     (list

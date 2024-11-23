@@ -258,7 +258,21 @@ DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
             return myEval(body, env);
         }
     }
-    return new Asdf('#inert');
+    // return new Asdf('#inert');
+    throw new Error('no valid cond!');
+}));
+DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
+    const [expr, ...clauses] = params;
+    const value = asAsdf(myEval(expr, env));
+    for (const clause of clauses) {
+        const [formal, body, ...extra] = clause.innerValues();
+        if (extra.length > 0) throw new Error('bad params');
+        const new_env = new Env([env]);
+        if (tryToMatchBindings(formal, value, new_env)) {
+            return myEval(body, new_env);
+        }
+    }
+    throw new Error('could not match!');
 }));
 
 function asAsdf(v: Value): Asdf {
@@ -353,19 +367,39 @@ export function myEval(expr: Asdf, env: Env): Value {
 }
 
 function matchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: Env): void {
+    if (!tryToMatchBindings(formal_tree, value, env_to_add_stuff)) {
+        throw new Error('bad params');
+    }
+}
+
+// TODO: allow matching [first, ...rest]
+function tryToMatchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: Env): boolean {
     if (formal_tree.isLeaf()) {
-        if (formal_tree.atomValue() !== '_') {
+        const v = formal_tree.atomValue();
+        if (v === '_') {
+            // ignore the value
+            return true;
+        }
+        else if (v[0] === '#') {
+            return (value instanceof Asdf) && (value.isAtom(v.slice(1)));
+        }
+        else {
             env_to_add_stuff.add(formal_tree.atomValue(), value);
+            return true;
         }
     }
     else {
         const tree_ins = formal_tree.innerValues();
-        if (!(value instanceof Asdf)) throw new Error('Can\'t do nested stuff with a non-Asdf value');
+        if (!(value instanceof Asdf)) return false;
+        if (value.isLeaf()) return false;
         const params_ins = value.innerValues();
-        if (params_ins.length !== tree_ins.length) throw new Error('bad number of params');
+        if (params_ins.length !== tree_ins.length) return false;
         for (const [tree, param] of zip2(tree_ins, params_ins)) {
-            matchBindings(tree, param, env_to_add_stuff);
+            if (!tryToMatchBindings(tree, param, env_to_add_stuff)) {
+                return false;
+            }
         }
+        return true;
     }
 }
 
@@ -389,3 +423,5 @@ function assertAtom(thing: Asdf, expected: string) {
 // function toTypeScript(funk: Funk) {
 //     const ['fn', name, params, returnType, body] = funk;
 // }
+
+// TODO: $match
