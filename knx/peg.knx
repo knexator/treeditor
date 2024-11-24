@@ -1,33 +1,37 @@
-($sequence
+($provide! (peg/matches?) ($sequence
+    ($define! helper ($lambda (peg text_chars)
+        ($match peg
+            (_ (atom? peg)                      ($let ((remaining-chars (chars peg)))
+                                                    ($if (=? #0 (len remaining-chars))
+                                                        (list #true text_chars)
+                                                        ($if (=? (first remaining-chars) (first text_chars))
+                                                            (helper (join (rest remaining-chars)) (rest text_chars))
+                                                            (list #false #inert)))))
+            
+            ((#set chars-set)                   ($if (in? (first text_chars) (chars chars-set))
+                                                    (list #true (rest text_chars))
+                                                    (list #false #inert)))
+
+            ((#sequence . rest-of-pegs)         ($if (=? #0 (len rest-of-pegs))
+                                                    (list #true text_chars)  
+                                                    ($let (( (is-first-valid remaining-chars) (helper (first rest-of-pegs) text_chars ) ))  
+                                                        ($match is-first-valid
+                                                            (#error-bad-peg     (list #error-bad-peg #inert))
+                                                            (#true              (helper (withHead #sequence (rest rest-of-pegs)) remaining-chars))
+                                                            (#false             (list #false #inert))))))
+
+            ((#any inner-peg)                   ($let (( (is-valid remaining-chars) (helper inner-peg text_chars ) ))
+                                                    ($match is-valid
+                                                        (#error-bad-peg         (list #error-bad-peg #inert))
+                                                        (#true                  (helper peg remaining-chars))
+                                                        (#false                 (list #true text_chars)))))
+
+            ((#some inner-peg)                  ($let (( (is-valid remaining-chars) (helper inner-peg text_chars ) ))  
+                                                    ($match is-valid
+                                                        (#error-bad-peg         (list #error-bad-peg #inert))
+                                                        (#true                  (helper (list #any inner-peg) remaining-chars))
+                                                        (#false                 (list #false #inert)))))
+
+            (_                                  (list #error-bad-peg #inert)))))
     ($define! peg/matches? ($lambda (peg text)
-        ($letrec ((helper ($lambda (peg text_chars)
-            ($match peg
-                (_ (atom? peg)                      ($let ((remaining-chars (chars peg)))
-                                                        ($if (=? #0 (len remaining-chars))
-                                                            (list #true text_chars)
-                                                            ($if (=? (first remaining-chars) (first text_chars))
-                                                                (helper (join (rest remaining-chars)) (rest text_chars))
-                                                                (list #false #inert)))))
-                ((#set chars-set)                   ($if (in? (first text_chars) (chars chars-set))
-                                                        (list #true (rest text_chars))
-                                                        (list #false #inert)))
-                ((#sequence . rest-of-pegs)         ($if (=? #0 (len rest-of-pegs))
-                                                        (list #true text_chars)  
-                                                        ($let (( (is-first-valid remaining-chars) (helper (first rest-of-pegs) text_chars ) ))  
-                                                            ($match is-first-valid
-                                                                (#error-bad-peg     (list #error-bad-peg #inert))
-                                                                (#true              (helper (withHead #sequence (rest rest-of-pegs)) remaining-chars))
-                                                                (#false             (list #false #inert))))))
-                ((#any inner-peg)                   ($let (( (is-valid remaining-chars) (helper inner-peg text_chars ) ))
-                                                        ($match is-valid
-                                                            (#error-bad-peg         (list #error-bad-peg #inert))
-                                                            (#true                  (helper peg remaining-chars))
-                                                            (#false                 (list #true text_chars)))))
-                ((#some inner-peg)                  ($let (( (is-valid remaining-chars) (helper inner-peg text_chars ) ))  
-                                                        ($match is-valid
-                                                            (#error-bad-peg         (list #error-bad-peg #inert))
-                                                            (#true                  (helper (list #any inner-peg) remaining-chars))
-                                                            (#false                 (list #false #inert)))))
-                (_                                  (list #error-bad-peg #inert))))))
-            (first (helper peg (chars text))))))
-)
+        (first (helper peg (chars text)))))))
