@@ -1,0 +1,12 @@
+($provide! (toJS) ($sequence
+    ($define! toJS ($lambda (expr)
+        ($match expr
+            (atom ($and (atom? atom) (=? ## (first (chars atom))))      (join* #" (join (rest (chars atom))) #"))
+            ((#$import! names module_expr)      (join* #todo:imports; NEWLINE))
+            ((#$sequence . exprs)               (join (map exprs toJS)))
+            ((#$define! var-name var-expr)      (join* #let SPACE var-name SPACE #= SPACE (toJS var-expr) #; NEWLINE))
+            ((#$struct . fields)                (join* #{ NEWLINE (join (map fields ($lambda ((field-name field-expr)) (join* TAB field-name #: SPACE (toJS field-expr) #, NEWLINE)))) #} ))
+            (other (toString (list #unhandled other)))
+        )
+    ))
+))

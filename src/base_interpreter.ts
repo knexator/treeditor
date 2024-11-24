@@ -212,6 +212,11 @@ DEFAULT_ENV.add('withHead', new BuiltInVau((params: Asdf[], env: Env) => {
     const [val, list] = params.map(p => asAsdf(myEval(p, env)));
     return new Asdf([val, ...list.innerValues()]);
 }));
+DEFAULT_ENV.add('withTail', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [list, val] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf([...list.innerValues(), val]);
+}));
 DEFAULT_ENV.add('len', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => myEval(p, env));
@@ -260,6 +265,15 @@ DEFAULT_ENV.add('join', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     throw new Error('bad params');
 }));
+DEFAULT_ENV.add('join*', new BuiltInVau((params: Asdf[], env: Env) => {
+    const vals = params.map(p => asAsdf(myEval(p, env)));
+    return Asdf.fromRaw(vals.map(v => v.atomValue()).join(''));
+}));
+DEFAULT_ENV.add('joinWithSeparator', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [list, separator] = params.map(p => asAsdf(myEval(p, env)));
+    return Asdf.fromRaw(list.innerValues().map(v => v.atomValue()).join(separator.atomValue()));
+}));
 DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
     for (const clause of params) {
         const [cond, body, ...extra] = clause.innerValues();
@@ -270,6 +284,22 @@ DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     // return Asdf.inert();
     throw new Error('no valid cond!');
+}));
+DEFAULT_ENV.add('$and', new BuiltInVau((params: Asdf[], env: Env) => {
+    for (const cond of params) {
+        if (!asAsdf(myEval(cond, env)).boolValue()) {
+            return Asdf.fromBool(false);
+        }
+    }
+    return Asdf.fromBool(true);
+}));
+DEFAULT_ENV.add('$or', new BuiltInVau((params: Asdf[], env: Env) => {
+    for (const cond of params) {
+        if (asAsdf(myEval(cond, env)).boolValue()) {
+            return Asdf.fromBool(true);
+        }
+    }
+    return Asdf.fromBool(false);
 }));
 DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
     const [expr, ...clauses] = params;
@@ -371,6 +401,32 @@ DEFAULT_ENV.add('get-module', new BuiltInVau((params: Asdf[], env: Env) => {
     myEval(file_contents, new_env);
     return new_env;
 }));
+DEFAULT_ENV.add('map', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [list, fn] = params.map(p => myEval(p, env));
+    if (!(fn instanceof BuiltInVau)) throw new Error('bad param');
+    const results: Asdf[] = [];
+    for (const v of asAsdf(list).innerValues()) {
+        results.push(asAsdf(fn.value([new Asdf([new Asdf('$quote'), v])], env)));
+    }
+    return new Asdf(results);
+}));
+DEFAULT_ENV.add('toUpperCase', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [v] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf(v.atomValue().toUpperCase());
+}));
+DEFAULT_ENV.add('toLowerCase', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [v] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf(v.atomValue().toLowerCase());
+}));
+DEFAULT_ENV.add('EMPTY_STRING', new Asdf(''));
+DEFAULT_ENV.add('NEWLINE', new Asdf('\n'));
+DEFAULT_ENV.add('OPEN_PAREN', new Asdf('('));
+DEFAULT_ENV.add('CLOSE_PAREN', new Asdf(')'));
+DEFAULT_ENV.add('SPACE', new Asdf(' '));
+DEFAULT_ENV.add('TAB', new Asdf('\t'));
 
 function asAsdf(v: Value): Asdf {
     if (v instanceof Asdf) return v;

@@ -1,0 +1,59 @@
+($sequence
+    ($import! (Vec2) (get-module #webgames.knx))
+    ($define! screen_size   (Vec2 640 640))
+    ($define! tile_side     60)
+    ($define! COLORS ($struct
+        (background #gray)
+        (border     #black)
+        (tile ($struct
+            (empty  #white)
+            (X      #red)
+            (O      #blue)
+        ))
+    )))
+
+/// inspiration:
+// # 3 en raya
+
+// screen_size = (640px, 640px)
+// tile_size = 60px
+// COLORS = {
+	// background: #445566,
+	// tile_border: #123456,
+	// tile: {
+		// empty: white,
+		// X: red,
+		// O: blue,
+	// },
+// };
+
+// type TileState = “empty” | “X” | “O”;
+// game_state = Grid2D<TileState, 3, 3>.fill(“empty”);
+
+// function draw_state_and_return_tile_under_mouse(state, mouse_pos): Vec2 | null {
+	// canvas.fill(COLORS.background);
+	// return canvas.drawGridCenteredAndReturnTileUnderMouse(
+		// game_state,
+		// border_size=2px, border_color=COLORS.tile_border,
+		// tile_size=tile_size,
+		// draw_cell=draw_cell,
+		// mouse_pos=mouse_pos
+	// );
+
+	// function draw_cell(cell_rect, cell_contents: TileState) {
+		// canvas.drawRect(cell_rect, color=COLORS.tile[cell_contents]);
+	// }
+// }
+
+// cur_player: “X” | “O” = “X”;
+// function every_frame() {
+	// mouse_tile = draw_state_and_return_tile_under_mouse(game_state, mouse_pos);
+	// if (mouse_tile !== null) {
+		// // TODO: highlight the tile
+		// if (mouse.wasClicked) {
+			// // TODO: check game logic (the tile must be empty, etc)
+			// game_state.setAt(mouse_tile, cur_player);
+			// cur_player = oppositePlayer(cur_player);
+		// }
+	// }
+// }

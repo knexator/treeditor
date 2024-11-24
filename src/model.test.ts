@@ -140,6 +140,14 @@ test('built in vaus', () => {
         outerEval(Asdf.fromCutre(`($let (( (head . tail) (list #1))) (list head tail))`), Env.standard()),
     ).toBeLitAsdf('(1 ())');
 
+    expect(
+        outerEval(Asdf.fromCutre(`(toUpperCase #Hola)`), Env.standard()),
+    ).toBeLitAsdf('HOLA');
+
+    expect(
+        outerEval(Asdf.fromCutre(`(joinWithSeparator (map (chars #Hola) toUpperCase) EMPTY_STRING)`), Env.standard()),
+    ).toBeLitAsdf('HOLA');
+
     // like apply but for operatives
     expect(
         outerEval(Asdf.fromCutre('(operate $first ($quote (a b c)))'), Env.standard()),

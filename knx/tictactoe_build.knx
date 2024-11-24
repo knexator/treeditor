@@ -1,0 +1,3 @@
+($sequence
+    ($import! (toJS) (get-module #compileToJS.knx))
+    (write #tictactoe.js (toJS (load #tictactoe.knx))))
