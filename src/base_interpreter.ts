@@ -275,11 +275,20 @@ DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
     const [expr, ...clauses] = params;
     const value = asAsdf(myEval(expr, env));
     for (const clause of clauses) {
-        const [formal, body, ...extra] = clause.innerValues();
-        if (extra.length > 0) throw new Error('bad params');
-        const new_env = new Env([env]);
-        if (tryToMatchBindings(formal, value, new_env)) {
-            return myEval(body, new_env);
+        const asdf = clause.innerValues();
+        if (asdf.length == 2) {
+            const [formal, body] = clause.innerValues();
+            const new_env = new Env([env]);
+            if (tryToMatchBindings(formal, value, new_env)) {
+                return myEval(body, new_env);
+            }
+        }
+        else if (asdf.length == 3) {
+            const [formal, cond, body] = clause.innerValues();
+            const new_env = new Env([env]);
+            if (tryToMatchBindings(formal, value, new_env) && asAsdf(myEval(cond, new_env)).boolValue()) {
+                return myEval(body, new_env);
+            }
         }
     }
     throw new Error('could not match!');
@@ -402,7 +411,6 @@ export function myEval(expr: Asdf, env: Env): Value {
             if (first.typed) {
                 const [name, type, ...extra] = params[k].innerValues();
                 if (extra.length > 0) throw new Error('bad format in param');
-                ;
                 new_env.add(name.atomValue(), rest[k]);
             }
             else {
@@ -457,6 +465,24 @@ function tryToMatchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: E
             return true;
         }
     }
+    else if (formal_tree.innerValues().some(v => v.isAtom('.'))) {
+        const tree_ins = formal_tree.innerValues();
+        if (tree_ins.length < 3) throw new Error('bad pattern');
+        if (tree_ins.filter(v => v.isAtom('.')).length > 1) throw new Error('bad pattern');
+        if (!tree_ins.at(-2)!.isAtom('.')) throw new Error('bad pattern');
+        if (!(value instanceof Asdf)) return false;
+        if (value.isLeaf()) return false;
+        const params_ins = value.innerValues();
+        if (tree_ins.length < params_ins.length - 2) return false;
+        for (let k = 0; k < tree_ins.length - 2; k++) {
+            const tree = tree_ins[k];
+            const param = params_ins[k];
+            if (!tryToMatchBindings(tree, param, env_to_add_stuff)) {
+                return false;
+            }
+        }
+        return tryToMatchBindings(tree_ins.at(-1)!, new Asdf(params_ins.slice(tree_ins.length - 2)), env_to_add_stuff);
+    }
     else {
         const tree_ins = formal_tree.innerValues();
         if (!(value instanceof Asdf)) return false;
@@ -492,5 +518,3 @@ function assertAtom(thing: Asdf, expected: string) {
 // function toTypeScript(funk: Funk) {
 //     const ['fn', name, params, returnType, body] = funk;
 // }
-
-// TODO: $match
