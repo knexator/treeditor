@@ -72,11 +72,11 @@ export class Asdf {
     constructor(
         public data: string | Asdf[],
     ) {
-        if (typeof data === 'string') {
-            if ([' ', '(', ')'].some(forbiden_char => data.includes(forbiden_char))) {
-                throw new Error('spaces or parenthesis in atoms are not supported');
-            }
-        }
+        // if (typeof data === 'string') {
+        //     if ([' ', '(', ')'].some(forbiden_char => data.includes(forbiden_char))) {
+        //         throw new Error('spaces or parenthesis in atoms are not supported');
+        //     }
+        // }
     }
 
     isLeaf(): boolean {

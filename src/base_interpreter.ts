@@ -293,6 +293,30 @@ DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     throw new Error('could not match!');
 }));
+DEFAULT_ENV.add('toString', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf(val.toCutreString());
+}));
+DEFAULT_ENV.add('fromString', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    return Asdf.fromCutre(val.atomValue());
+}));
+DEFAULT_ENV.add('read', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    const resolvedPath = path.resolve(asAsdf(env.lookup('__file__')!).atomValue(), '..', val.atomValue());
+    const fileContents = fs.readFileSync(resolvedPath, 'utf8');
+    return new Asdf(fileContents);
+}));
+DEFAULT_ENV.add('write', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [file, val] = params.map(p => asAsdf(myEval(p, env)));
+    const resolvedPath = path.resolve(asAsdf(env.lookup('__file__')!).atomValue(), '..', file.atomValue());
+    fs.writeFileSync(resolvedPath, val.atomValue());
+    return Asdf.inert();
+}));
 DEFAULT_ENV.add('load', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => asAsdf(myEval(p, env)));
