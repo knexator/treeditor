@@ -23,5 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
+*.wasm
+
 # my stuff
 src/sketches.knx.rs

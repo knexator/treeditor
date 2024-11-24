@@ -18,7 +18,7 @@ export default tseslint.config(
   // }),
   stylistic.configs['recommended-flat'],
   {
-    ignores: ['*.config.js'],
+    ignores: ['*.config.js', 'wasm/*'],
     languageOptions: {
       parserOptions: {
         project: true,

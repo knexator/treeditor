@@ -1,0 +1,14 @@
+($sequence
+    ($import! (toWat) (get-module #./zyxToWasm.knx))
+    ($define! expected ($quote 
+        (module
+            // (memory (export "memory") 1)
+            (func $add (export "add) (param i32 i32) (result i32)
+                (i32.add
+                    (local.get 0)
+                    (local.get 1))
+            )
+        )
+    ))
+    (toWat ($quote (  (def myAdd ((x #i32) (y #i32)) #i32 (+ x y)) )))
+)
