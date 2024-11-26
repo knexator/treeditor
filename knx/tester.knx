@@ -1,0 +1,4 @@
+($provide! (testEqual) ($sequence
+    ($define! testEqual ($lambda (expected actual)
+        ($if (=? actual expected) #inert (error #NotEqual))))
+))

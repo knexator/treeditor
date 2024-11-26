@@ -1,15 +1,46 @@
 ($sequence
+    ($import! (testEqual) (get-module #./tester.knx))
     ($import! (toWat) (get-module #./zyxToWasm.knx))
-    ($define! expected ($quote 
+    (testEqual ($quote
         (func $add (export "add") (param $x i32) (param $y i32) (result i32)
             (i32.add
                 (local.get $x)
                 (local.get $y))
         )
-    ))
-    ($define! actual (toWat ($quote
+    ) (toWat ($quote
         (func add ((x i32) (y i32)) i32
             (+ x y)))))
     
-    (=? expected actual)
+    // map 
+    # TODO: study incrementByOne.wat
+    (testEqual ($quote
+        (func $incrementArrayByOne (export "incrementArrayByOne") (param $src_ptr i32) (param $src_len i32) (param $dst_ptr i32) (param $dst_len i32)
+            (local $i i32)
+            (local.set $i (i32.const 0))
+            (block
+                (loop
+                    (br_if 1 (i32.eq (local.get $i) (local.get $src_len)))
+                    
+                    (i32.store
+                        // where to store it
+                        (i32.add
+                            (local.get $dst_ptr)
+                            (i32.mul (local.get $i) (i32.const 4)))
+                        
+                        // what to store
+                        (i32.add (i32.const 1)
+                            // original value
+                            (i32.load (i32.add 
+                                (local.get $src_ptr) 
+                                (i32.mul (local.get $i) (i32.const 4))))))
+                    
+                    (local.set $i (i32.add (local.get $i) (i32.const 1)))
+
+                    // continue loop
+                    (br 0)
+            ))
+        )
+    ) (toWat ($quote
+        (func add ((x i32) (y i32)) i32
+            (+ x y)))))
 )
