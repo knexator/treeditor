@@ -411,6 +411,22 @@ DEFAULT_ENV.add('map', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     return new Asdf(results);
 }));
+DEFAULT_ENV.add('$listWithSplices', new BuiltInVau((params: Asdf[], env: Env) => {
+    const vals: Asdf[] = [];
+    for (let k = 0; k < params.length; k++) {
+        const param = params[k];
+        if (param.isAtom(',@')) {
+            k += 1;
+            const next_param = params[k];
+            const next_vals = asAsdf(myEval(next_param, env));
+            vals.push(...next_vals.innerValues());
+        }
+        else {
+            vals.push(asAsdf(myEval(param, env)));
+        }
+    }
+    return new Asdf(vals);
+}));
 DEFAULT_ENV.add('toUpperCase', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [v] = params.map(p => asAsdf(myEval(p, env)));
@@ -420,6 +436,10 @@ DEFAULT_ENV.add('toLowerCase', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [v] = params.map(p => asAsdf(myEval(p, env)));
     return new Asdf(v.atomValue().toLowerCase());
+}));
+DEFAULT_ENV.add('error', new BuiltInVau((params: Asdf[], env: Env) => {
+    const vs = params.map(p => asAsdf(myEval(p, env)));
+    throw new Error(vs.map(v => v.toCutreString()).join(', '));
 }));
 DEFAULT_ENV.add('EMPTY_STRING', new Asdf(''));
 DEFAULT_ENV.add('NEWLINE', new Asdf('\n'));

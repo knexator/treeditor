@@ -1,0 +1,16 @@
+($provide! (toWat) ($sequence
+    ($define! dollar ($lambda (str) (join* #$ str)))
+    ($define! quoted ($lambda (str) (join* #" str #")))
+    ($define! paramsToWasm ($lambda (x) (map x ($lambda ((name type)) (list #param (dollar name) type)))))
+    ($define! toWat ($lambda (expr)
+        ($match expr
+            ((#+ v1 v2) ($and (atom? v1) (atom? v2)) 
+                (list #i32.add (list #local.get (dollar v1)) (list #local.get (dollar v2))))
+            ((#func name params return-type body) ($listWithSplices 
+                #func (dollar name) (list #export (quoted name)) 
+                    ,@ (paramsToWasm params)
+                    (list #result return-type)
+                    (toWat body)))
+        )
+    ))
+))
