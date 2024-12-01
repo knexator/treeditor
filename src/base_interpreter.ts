@@ -441,6 +441,15 @@ DEFAULT_ENV.add('error', new BuiltInVau((params: Asdf[], env: Env) => {
     const vs = params.map(p => asAsdf(myEval(p, env)));
     throw new Error(vs.map(v => v.toCutreString()).join(', '));
 }));
+DEFAULT_ENV.add('debugLog', new BuiltInVau((params: Asdf[], env: Env) => {
+    const vs = params.map(p => asAsdf(myEval(p, env)));
+    console.log(vs.map(v => v.toCutreString()).join(', '));
+    return Asdf.inert();
+}));
+DEFAULT_ENV.add('breakpoint', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length > 0) throw new Error('bad');
+    return Asdf.inert();
+}));
 DEFAULT_ENV.add('EMPTY_STRING', new Asdf(''));
 DEFAULT_ENV.add('NEWLINE', new Asdf('\n'));
 DEFAULT_ENV.add('OPEN_PAREN', new Asdf('('));
@@ -549,7 +558,6 @@ function matchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: Env): 
     }
 }
 
-// TODO: allow matching [first, ...rest]
 function tryToMatchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: Env): boolean {
     if (formal_tree.isLeaf()) {
         const v = formal_tree.atomValue();
@@ -567,13 +575,17 @@ function tryToMatchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: E
     }
     else if (formal_tree.innerValues().some(v => v.isAtom('.'))) {
         const tree_ins = formal_tree.innerValues();
+        if (asAsdf(value).toCutreString().startsWith('(!params')) {
+            console.log(formal_tree.toCutreString());
+            console.log(asAsdf(value).toCutreString());
+        }
         if (tree_ins.length < 3) throw new Error('bad pattern');
         if (tree_ins.filter(v => v.isAtom('.')).length > 1) throw new Error('bad pattern');
         if (!tree_ins.at(-2)!.isAtom('.')) throw new Error('bad pattern');
         if (!(value instanceof Asdf)) return false;
         if (value.isLeaf()) return false;
         const params_ins = value.innerValues();
-        if (tree_ins.length < params_ins.length - 2) return false;
+        if (tree_ins.length - 2 > params_ins.length) return false;
         for (let k = 0; k < tree_ins.length - 2; k++) {
             const tree = tree_ins[k];
             const param = params_ins[k];

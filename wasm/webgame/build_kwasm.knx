@@ -1,2 +1,12 @@
 ($sequence
-    (write #game.wat (toString (load #game.kwt))))
+    ($define! macro-atom? ($lambda (x) (=? #! (first (chars x)))))
+    ($define! expand-!-macros ($lambda (tree) ($match tree 
+        ((#!params . rest) ($quote ((param $i i32) (param $j i32))))
+
+        // TODO: splicing
+
+        // no pattern matched
+        (atom (atom? atom) atom)
+        (asdf (map asdf expand-!-macros))
+    )))
+    (write #game.wat (toString (expand-!-macros (load #game.kwt)))))

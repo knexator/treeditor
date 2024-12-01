@@ -154,6 +154,14 @@ test('built in vaus', () => {
     ).toBeLitAsdf('a');
 });
 
+test('bugs', () => {
+    expect(
+        outerEval(Asdf.fromCutre(`($match ($quote (!params $i i32 $j i32 $r i32 $g i32 $b i32))
+            ((#!params . rest)  #good)
+            (_ #bad))`), Env.standard()),
+    ).toBeLitAsdf('good');
+});
+
 // test('basic eval', () => {
 //     const env = envFromToplevel(Asdf.fromCutreString(`(toplevel
 //         ($define! first ($lambda (a b) a))

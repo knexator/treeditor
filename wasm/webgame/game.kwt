@@ -1,7 +1,7 @@
 (module
     (import "env" "consoleLog" (func $logI32 (param $thing i32)))
     (import "env" "consoleLog" (func $logF32 (param $thing f32)))
-    (import "env" "fillTile_native" (func $fillTile_native (param $i i32) (param $j i32) (param $r i32) (param $g i32) (param $b i32)))
+    (import "env" "fillTile_native" (func $fillTile_native (!params $i i32 $j i32 $r i32 $g i32 $b i32)))
     (func $draw (export "draw")
         (call $logI32 (i32.const 0))
     )
