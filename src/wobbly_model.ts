@@ -227,7 +227,7 @@ export class Asdf {
         else {
             if (typeof other.data === 'string') return false;
             const other_data = other.data;
-            return this.data.every((v, k) => v.equals(other_data[k]));
+            return this.data.length === other_data.length && this.data.every((v, k) => v.equals(at(other_data, k)));
         }
     }
 
@@ -250,7 +250,9 @@ export class Asdf {
                 while (remaining[0] !== ')') {
                     const [cur, new_remaining] = helper(remaining);
                     remaining = new_remaining.trimStart();
-                    inner.push(cur);
+                    if (!cur.isAtom('')) {
+                        inner.push(cur);
+                    }
                 }
                 return [new Asdf(inner), remaining.slice(1)];
             }

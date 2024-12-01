@@ -251,7 +251,7 @@ export function assertEmpty<T>(arr: T[]): void {
 
 export function at<T>(arr: T[], index: number): T {
     if (arr.length === 0) throw new Error('can\'t call \'at\' with empty array');
-    if (index >= arr.length) throw new Error('index out of bounds');
+    if (index >= arr.length) throw new Error(`index ${index} out of bounds for len ${arr.length}`);
     if (index < -arr.length) throw new Error('negative index out of bounds');
     return arr[mod(index, arr.length)];
 }

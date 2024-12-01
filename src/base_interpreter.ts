@@ -1,8 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { assertEmpty, assertNotNull, zip2 } from './kommon/kommon';
+import { assertEmpty, assertNotNull, at, enumerate, zip2 } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
+import syncFetch from 'sync-fetch';
+import { mod } from './kommon/math';
 
 class BuiltInVau {
     constructor(
@@ -52,6 +54,10 @@ DEFAULT_ENV.add('list', new BuiltInVau((params: Asdf[], env: Env) => {
     // @ts-expect-error TODO
     return new Asdf(vals);
 }));
+DEFAULT_ENV.add('abs', new BuiltInVau((params: Asdf[], env: Env) => {
+    const [n] = params.map(v => asAsdf(myEval(v, env)).numberValue());
+    return Asdf.fromNumber(Math.abs(n));
+}));
 DEFAULT_ENV.add('+', new BuiltInVau((params: Asdf[], env: Env) => {
     const numbers = params.map((p) => {
         const v = myEval(p, env);
@@ -70,12 +76,13 @@ DEFAULT_ENV.add('*', new BuiltInVau((params: Asdf[], env: Env) => {
 }));
 DEFAULT_ENV.add('-', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
-    const numbers = params.map((p) => {
-        const v = myEval(p, env);
-        if (!(v instanceof Asdf)) throw new Error('not all values were numbers');
-        return v.numberValue();
-    });
+    const numbers = params.map(p => asAsdf(myEval(p, env)).numberValue());
     return Asdf.fromNumber(numbers[0] - numbers[1]);
+}));
+DEFAULT_ENV.add('%', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const numbers = params.map(p => asAsdf(myEval(p, env)).numberValue());
+    return Asdf.fromNumber(mod(numbers[0], numbers[1]));
 }));
 DEFAULT_ENV.add('<?', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
@@ -191,6 +198,11 @@ DEFAULT_ENV.add('=?', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     throw new Error('bad params');
 }));
+DEFAULT_ENV.add('not', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 params`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    return Asdf.fromBool(!val.boolValue());
+}));
 DEFAULT_ENV.add('atom?', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => myEval(p, env));
@@ -206,6 +218,11 @@ DEFAULT_ENV.add('in?', new BuiltInVau((params: Asdf[], env: Env) => {
         if (val.equals(v)) return Asdf.fromBool(true);
     }
     return Asdf.fromBool(false);
+}));
+DEFAULT_ENV.add('concat', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [a, b] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf([...a.innerValues(), ...b.innerValues()]);
 }));
 DEFAULT_ENV.add('withHead', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
@@ -225,11 +242,23 @@ DEFAULT_ENV.add('len', new BuiltInVau((params: Asdf[], env: Env) => {
     }
     throw new Error('bad params');
 }));
+DEFAULT_ENV.add('empty?', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    return Asdf.fromBool(val.innerValues().length === 0);
+}));
+DEFAULT_ENV.add('sort', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    const numbers = val.innerValues().map(x => x.numberValue());
+    numbers.sort();
+    return new Asdf(numbers.map(x => Asdf.fromNumber(x)));
+}));
 DEFAULT_ENV.add('first', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => myEval(p, env));
     if (val instanceof Asdf) {
-        return val.innerValues()[0];
+        return at(val.innerValues(), 0);
     }
     throw new Error('bad params');
 }));
@@ -321,7 +350,7 @@ DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
             }
         }
     }
-    throw new Error('could not match!');
+    throw new Error(`could not match! ${value.toCutreString()}`);
 }));
 DEFAULT_ENV.add('toString', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
@@ -332,6 +361,24 @@ DEFAULT_ENV.add('fromString', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const [val] = params.map(p => asAsdf(myEval(p, env)));
     return Asdf.fromCutre(val.atomValue());
+}));
+DEFAULT_ENV.add('download', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    const url = val.atomValue();
+    const text = syncFetch(url, {
+        headers: {
+            Cookie: 'session=53616c7465645f5f1ff46c477428c5055f4783f9e3c483cac40b8c797140da67d2f9c3fdcb967fc9d4f5ddcdbbabafe588472f57fe61426fd25424faaefbad62',
+        },
+    }).text();
+    return new Asdf(text);
+}));
+DEFAULT_ENV.add('file-exists?', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 param`);
+    const [val] = params.map(p => asAsdf(myEval(p, env)));
+    const resolvedPath = path.resolve(asAsdf(env.lookup('__file__')!).atomValue(), '..', val.atomValue());
+    const exists = fs.existsSync(resolvedPath);
+    return Asdf.fromBool(exists);
 }));
 DEFAULT_ENV.add('read', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
@@ -397,6 +444,8 @@ DEFAULT_ENV.add('get-module', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
     const file_name = asAsdf(myEval(params[0], env)).atomValue();
     const new_env = Env.standard();
+    const resolvedPath = path.resolve(asAsdf(env.lookup('__file__')!).atomValue(), '..', file_name);
+    new_env.add('__file__', new Asdf(resolvedPath));
     const file_contents = asAsdf(myEval(Asdf.fromRaw(['load', '#' + file_name]), env));
     myEval(file_contents, new_env);
     return new_env;
@@ -408,6 +457,39 @@ DEFAULT_ENV.add('map', new BuiltInVau((params: Asdf[], env: Env) => {
     const results: Asdf[] = [];
     for (const v of asAsdf(list).innerValues()) {
         results.push(asAsdf(fn.value([new Asdf([new Asdf('$quote'), v])], env)));
+    }
+    return new Asdf(results);
+}));
+DEFAULT_ENV.add('filter-with-index', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 2) throw new Error(`expected 2 params`);
+    const [list, fn] = params.map(p => myEval(p, env));
+    if (!(fn instanceof BuiltInVau)) throw new Error('bad param');
+    const results: Asdf[] = [];
+    for (const [k, v] of enumerate(asAsdf(list).innerValues())) {
+        const cond = asAsdf(fn.value([new Asdf([new Asdf('$quote'), v]), new Asdf([new Asdf('$quote'), Asdf.fromNumber(k)])], env)).boolValue();
+        if (cond) {
+            results.push(v);
+        }
+    }
+    return new Asdf(results);
+}));
+DEFAULT_ENV.add('reduce', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 3) throw new Error(`expected 3 params`);
+    const [list, fn, initial_value] = params.map(p => myEval(p, env));
+    if (!(fn instanceof BuiltInVau)) throw new Error('bad param');
+    let result = asAsdf(initial_value);
+    for (const v of asAsdf(list).innerValues()) {
+        result = asAsdf(fn.value([new Asdf([new Asdf('$quote'), v]), new Asdf([new Asdf('$quote'), result])], env));
+    }
+    return result;
+}));
+DEFAULT_ENV.add('zip', new BuiltInVau((params: Asdf[], env: Env) => {
+    const [...lists] = params.map(p => asAsdf(myEval(p, env)).innerValues());
+    const results: Asdf[] = [];
+    const len = lists[0].length;
+    if (!lists.every(l => l.length === len)) throw new Error('zip expects all lists to have the same len');
+    for (let k = 0; k < len; k++) {
+        results.push(new Asdf(lists.map(l => at(l, k))));
     }
     return new Asdf(results);
 }));
@@ -459,7 +541,8 @@ DEFAULT_ENV.add('TAB', new Asdf('\t'));
 
 function asAsdf(v: Value): Asdf {
     if (v instanceof Asdf) return v;
-    throw new Error('bad param');
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
+    throw new Error(`bad param: ${v}`);
 }
 
 function asEnv(v: Value): Env {
@@ -529,7 +612,11 @@ export function myEval(expr: Asdf, env: Env): Value {
         return myEval(first.body, new_env);
     }
     else if (first instanceof BuiltInVau) {
-        return first.value(rest, env);
+        const r = first.value(rest, env);
+        if (r === undefined) {
+            throw new Error(`raw_first: ${raw_first.toCutreString()}, rest: ${rest.map(x => x.toCutreString()).join('; ')}`);
+        }
+        return r;
     }
     else if (first instanceof Asdf) {
         // TODO: move these to BuiltInVaus
@@ -575,10 +662,6 @@ function tryToMatchBindings(formal_tree: Asdf, value: Value, env_to_add_stuff: E
     }
     else if (formal_tree.innerValues().some(v => v.isAtom('.'))) {
         const tree_ins = formal_tree.innerValues();
-        if (asAsdf(value).toCutreString().startsWith('(!params')) {
-            console.log(formal_tree.toCutreString());
-            console.log(asAsdf(value).toCutreString());
-        }
         if (tree_ins.length < 3) throw new Error('bad pattern');
         if (tree_ins.filter(v => v.isAtom('.')).length > 1) throw new Error('bad pattern');
         if (!tree_ins.at(-2)!.isAtom('.')) throw new Error('bad pattern');

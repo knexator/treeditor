@@ -1,5 +1,5 @@
 ($sequence
-    ($import! (peg/matches?) (get-module #./peg.knx))
+    ($import! (peg/matches? peg/match) (get-module #./peg.knx))
     (list
         (peg/matches? ($quote hola) #holabuenas)
         (peg/matches? ($quote hola) #hobuenas)
@@ -11,5 +11,20 @@
         (peg/matches? ($quote (sequence (any na) na no)) #nano)
         (peg/matches? ($quote (sequence (some na) no)) #nanano)
         (peg/matches? ($quote (sequence (some na) no)) #nonano)
+        #;
+        (=? (list) (peg/match ($quote hola) #holabuenas))
+        (=? #false (peg/match ($quote hola) #hobuenas))
+        (=? (list #hola) (peg/match ($quote (capture hola)) #holabuenas))
+        (=? (list #2)    (peg/match ($quote (capture (set 1234))) #2))
+        (=? (list #1)    (peg/match ($quote (capture (constant 1))) #2))
+        (=? (list #1 #2)    (peg/match ($quote (capture (sequence (constant 1) (constant 2)))) #2))
+        (=? (list #nana) (peg/match ($quote (capture (any na))) #nanano))
+        (=? (list #na #na) (peg/match ($quote (any (capture na))) #nanano))
+        (=? (list #12345) (peg/match ($quote (capture (any (set 0123456789)))) #12345))
+        (=? (list #123 #456) (peg/match ($quote (any (sequence (capture (any (set 0123456789))) (some (space)) ))) (join* #123 SPACE #456)))
+        (peg/match ($quote (any (sequence 
+            (capture (any (set 0123456789)))
+            (some (space))
+        ))) (join* #123 SPACE #456 SPACE))
     )
 )

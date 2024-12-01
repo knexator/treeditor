@@ -18,7 +18,7 @@ expect.extend({
             // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             return { pass: false, message: () => `Got something weird: ${received}` };
         }
-        if (received.equals(Asdf.fromCutre(expected))) {
+        if (Asdf.fromCutre(expected).equals(received)) {
             return { pass: true, message: () => 'yes' };
         }
         else {
@@ -160,6 +160,10 @@ test('bugs', () => {
             ((#!params . rest)  #good)
             (_ #bad))`), Env.standard()),
     ).toBeLitAsdf('good');
+
+    expect(Asdf.fromCutre(`(foo
+        // bar
+    )`).toCutreString()).toBe('(foo)');
 });
 
 // test('basic eval', () => {

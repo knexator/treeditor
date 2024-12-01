@@ -1,0 +1,9 @@
+($provide! (input-for-day-1) ($sequence
+    ($define! input-for-day-1 ($lambda () 
+        ($let ((cached-file #./cache/input_1.txt)) 
+            ($if (file-exists? cached-file)
+                (read cached-file)
+                ($let ((contents (download #https://adventofcode.com/2024/day/1/input)))
+                    ($sequence
+                        (write cached-file contents)
+                        contents))))))))
