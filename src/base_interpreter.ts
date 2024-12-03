@@ -314,6 +314,7 @@ DEFAULT_ENV.add('$cond', new BuiltInVau((params: Asdf[], env: Env) => {
     // return Asdf.inert();
     throw new Error('no valid cond!');
 }));
+// TODO: this should have a question mark
 DEFAULT_ENV.add('$and', new BuiltInVau((params: Asdf[], env: Env) => {
     for (const cond of params) {
         if (!asAsdf(myEval(cond, env)).boolValue()) {
@@ -542,7 +543,7 @@ DEFAULT_ENV.add('TAB', new Asdf('\t'));
 function asAsdf(v: Value): Asdf {
     if (v instanceof Asdf) return v;
     // eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
-    throw new Error(`bad param: ${v}`);
+    throw new Error(`bad param: ${v}, with type ${typeof v}, ${v.constructor}`);
 }
 
 function asEnv(v: Value): Env {

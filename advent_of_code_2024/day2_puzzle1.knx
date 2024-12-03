@@ -1,0 +1,29 @@
+($sequence
+    ($import! (input-for-day-n) (get-module #kommon.knx))
+    ($import! (peg/match) (get-module #../knx/peg.knx))
+    ($define! numFromBool ($lambda (b) ($if b #1 #0)))
+    ($define! all? ($lambda (vals) 
+        ($if (empty? vals) 
+            #true
+            ($and (first vals) (all? (rest vals))))))
+    ($define! get-deltas ($lambda (row) ($match row
+        ((a b . etc) (withHead (- b a) (get-deltas (rest row))))
+        ((a . etc) (list)))))
+    ($define! is-safe? ($lambda (row)
+        ($let ((deltas (get-deltas row)))
+            ($or
+                (all? (map deltas ($lambda (n) ($and (<? #0 n) (<? n #4)))))
+                (all? (map deltas ($lambda (n) ($and (<? #-4 n) (<? n #0)))))))))
+    ($letrec (
+            (raw-rows (peg/match ($quote // TODO: better PEGs
+                (any (capture (sequence 
+                    (any (sequence 
+                        (some (set 0123456789))
+                        (any (space))))
+                    (newline)))))
+                (input-for-day-n #2)))
+            (rows (map raw-rows ($lambda (row) (peg/match ($quote
+                (any (sequence
+                    (capture (some (set 0123456789)))
+                    (any (space))))) row)))))
+        (reduce (map (map rows is-safe?) numFromBool) + #0)))
