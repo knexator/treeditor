@@ -1,5 +1,5 @@
 ($sequence
-    ($import! (input-for-day-1) (get-module #kommon.knx))
+    ($import! (input-for-day-n) (get-module #kommon.knx))
     ($import! (peg/match) (get-module #../knx/peg.knx))
     ($define! count ($lambda (element list)
         ($cond 
@@ -10,7 +10,7 @@
                 (any (sequence 
                     (capture (some (set 0123456789)))
                     (some (whitespace)))))
-                (input-for-day-1)))
+                (input-for-day #1)))
             (first-list (filter-with-index raw-numbers ($lambda (n k) (=? (% k #2) #0))))
             (second-list (filter-with-index raw-numbers ($lambda (n k) (=? (% k #2) #1)))))
         (reduce (map first-list ($lambda (v) (* v (count v second-list)))) + #0)))
