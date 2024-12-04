@@ -1,7 +1,7 @@
 ($provide! (peg/matches? peg/match) ($sequence
     ($define! helper-capturing ($lambda (peg text-chars) // #false | (captures captured-chars remaining-chars)
         ($match peg
-            ((#constant value)                  (list (list value) (list) text-chars))
+            ((#constant value)                  ($sequence (debugLog value value) (list (list value) (list) text-chars)))
             ((#capture inner-peg)               ($match (helper-capturing inner-peg text-chars)
                                                     (#false #false)
                                                     ((inner-captures captured-chars remaining-chars)
@@ -20,7 +20,14 @@
             ((#space)                           (helper-capturing SPACE text-chars))
             ((#newline)                         (helper-capturing NEWLINE text-chars))
             ((#tab)                             (helper-capturing TAB text-chars))
+            ((#open-paren)                      (helper-capturing OPEN_PAREN text-chars))
+            ((#close-paren)                     (helper-capturing CLOSE_PAREN text-chars))
             ((#whitespace)                      (helper-capturing (list #set (join* SPACE NEWLINE TAB)) text-chars))
+            ((#digit)                           (helper-capturing (list #set #0123456789) text-chars))
+
+            ((#char)                            ($cond 
+                                                    ((empty? text-chars) #false)
+                                                    (#true (list (list) (list (first text-chars)) (rest text-chars)))))
 
             ((#set chars-set)                   ($cond 
                                                     ((empty? text-chars) #false)
@@ -33,6 +40,25 @@
                                                         (#false #false)
                                                         ((first-inner-captures first-captured-chars first-remaining-chars)
                                                             ($match (helper-capturing (withHead #sequence (rest rest-of-pegs)) first-remaining-chars)
+                                                                (#false #false)
+                                                                ((rest-inner-captures rest-captured-chars rest-remaining-chars)
+                                                                    (list 
+                                                                        (concat first-inner-captures rest-inner-captures) 
+                                                                        (concat first-captured-chars rest-captured-chars) 
+                                                                        rest-remaining-chars)))))))
+            
+            ((#choice . rest-of-pegs)           ($if (=? #0 (len rest-of-pegs))
+                                                    #false
+                                                    ($match (helper-capturing (first rest-of-pegs) text-chars)
+                                                        (#false (helper-capturing (withHead #choice (rest rest-of-pegs)) text-chars))
+                                                        (result result))))
+            
+            ((#between lower upper inner-peg)   ($if (<? upper #0)
+                                                    #false
+                                                    ($match (helper-capturing inner-peg text-chars)
+                                                        (#false (<? lower #1))
+                                                        ((first-inner-captures first-captured-chars first-remaining-chars)
+                                                            ($match (helper-capturing (list #between (- lower #1) (- upper #1) inner-peg) first-remaining-chars)
                                                                 (#false #false)
                                                                 ((rest-inner-captures rest-captured-chars rest-remaining-chars)
                                                                     (list 
