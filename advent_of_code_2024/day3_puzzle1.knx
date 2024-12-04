@@ -1,0 +1,12 @@
+($sequence
+    ($import! (input-for-day-n) (get-module #kommon.knx))
+    ($import! (peg/match) (get-module #../knx/peg.knx))
+    ($define! split-pairs ($lambda (l) ($match l ((a b . etc) (withHead (list a b) (split-pairs etc))) ((a . etc) (error #not-even)) (nil nil))))
+    ($define! sum ($lambda (l) (reduce l + #0)))
+    // TODO: the peg/match overflows :<
+    (sum (map (split-pairs (peg/match ($quote
+        (any
+            (choice
+                (sequence mul (open-paren) (capture (between 1 3 (digit))) , (capture (between 1 3 (digit))) (close-paren)) 
+                (char)))
+    ) (input-for-day-n #3))) ($lambda ((a b)) (* a b)))))

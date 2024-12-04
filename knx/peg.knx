@@ -56,7 +56,7 @@
             ((#between lower upper inner-peg)   ($if (<? upper #0)
                                                     #false
                                                     ($match (helper-capturing inner-peg text-chars)
-                                                        (#false (<? lower #1))
+                                                        (#false ($if (<? lower #1) (list (list) (list) text-chars) #false))
                                                         ((first-inner-captures first-captured-chars first-remaining-chars)
                                                             ($match (helper-capturing (list #between (- lower #1) (- upper #1) inner-peg) first-remaining-chars)
                                                                 (#false #false)

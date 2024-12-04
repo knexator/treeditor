@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { assertEmpty, assertNotNull, at, enumerate, zip2 } from './kommon/kommon';
+import { assertEmpty, assertNotNull, at, enumerate, fromCount, zip2 } from './kommon/kommon';
 import { Asdf } from './wobbly_model';
 import syncFetch from 'sync-fetch';
 import { mod } from './kommon/math';
@@ -334,10 +334,12 @@ DEFAULT_ENV.add('$or', new BuiltInVau((params: Asdf[], env: Env) => {
 DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
     const [expr, ...clauses] = params;
     const value = asAsdf(myEval(expr, env));
+    const DEBUG_formals: Asdf[] = [];
     for (const clause of clauses) {
         const asdf = clause.innerValues();
         if (asdf.length == 2) {
             const [formal, body] = clause.innerValues();
+            DEBUG_formals.push(formal);
             const new_env = new Env([env]);
             if (tryToMatchBindings(formal, value, new_env)) {
                 return myEval(body, new_env);
@@ -351,7 +353,7 @@ DEFAULT_ENV.add('$match', new BuiltInVau((params: Asdf[], env: Env) => {
             }
         }
     }
-    throw new Error(`could not match! ${value.toCutreString()}`);
+    throw new Error(`could not match! ${value.toCutreString()} with patterns ${DEBUG_formals.map(x => x.toCutreString()).join(' ; ')}`);
 }));
 DEFAULT_ENV.add('toString', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 1) throw new Error(`expected 1 param`);
