@@ -14,6 +14,8 @@
         ((#!boilerplate) ($quote (
             (import "env" "consoleLogNumber" (func $logI32 (param $thing i32)))
             (import "env" "consoleLogNumber" (func $logF32 (param $thing f32)))
+            // TODO: allow !params macro here
+            (import "env" "loadFile" (func $loadFile (param $ptr_to_filename_z i32) (param $ptr_dst i32) (result i32)))
             (memory $memory (export "memory") 1)
         )))
         
