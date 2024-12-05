@@ -10,6 +10,13 @@
 
     ($define! macro-atom? ($lambda (x) (=? #! (first (chars x)))))
     ($define! expand-!-macros ($lambda (tree) ($match tree 
+        
+        ((#!boilerplate) ($quote (
+            (import "env" "consoleLogNumber" (func $logI32 (param $thing i32)))
+            (import "env" "consoleLogNumber" (func $logF32 (param $thing f32)))
+            (memory $memory (export "memory") 1)
+        )))
+        
         ((#!params . rest) (map (sequential-pairs rest) ($lambda ((n t)) (list #param n t))))
 
         // no pattern matched
