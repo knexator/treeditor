@@ -3,10 +3,8 @@
     ($define! expand-!-macros ($lambda (tree) ($match tree 
         ((#!params . rest) ($quote ((param $i i32) (param $j i32))))
 
-        // TODO: splicing
-
         // no pattern matched
-        (atom (atom? atom) atom)
-        (asdf (map asdf expand-!-macros))
+        (atom (atom? atom) (list atom))
+        (asdf (list (reduce (map asdf expand-!-macros) concat (list))))
     )))
-    (write #game.wat (toString (expand-!-macros (load #game.kwt)))))
+    (write #game.wat (toString (first (expand-!-macros (load #game.kwt))))))

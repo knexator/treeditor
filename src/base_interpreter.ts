@@ -482,7 +482,7 @@ DEFAULT_ENV.add('reduce', new BuiltInVau((params: Asdf[], env: Env) => {
     if (!(fn instanceof BuiltInVau)) throw new Error('bad param');
     let result = asAsdf(initial_value);
     for (const v of asAsdf(list).innerValues()) {
-        result = asAsdf(fn.value([new Asdf([new Asdf('$quote'), v]), new Asdf([new Asdf('$quote'), result])], env));
+        result = asAsdf(fn.value([new Asdf([new Asdf('$quote'), result]), new Asdf([new Asdf('$quote'), v])], env));
     }
     return result;
 }));
