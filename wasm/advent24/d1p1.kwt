@@ -1,6 +1,10 @@
 (module
     (!boilerplate)
+    (data (i32.const 0) "../../advent_of_code_2024/cache/input_1.txt")
+    (!comment TODO: allow proper wasm comments)
+    (!comment TODO: download the file at comptime)
     (func $main (export "main")
         (call $logI32 (i32.const 123))
+        (call $logI32 (i32.load (i32.const 0)))
     )
 )

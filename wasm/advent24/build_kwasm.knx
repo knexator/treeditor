@@ -17,6 +17,8 @@
             (memory $memory (export "memory") 1)
         )))
         
+        ((#!comment . etc) (list))
+        
         ((#!params . rest) (map (sequential-pairs rest) ($lambda ((n t)) (list #param n t))))
 
         // no pattern matched
