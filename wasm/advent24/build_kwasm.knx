@@ -1,0 +1,19 @@
+($sequence
+    ($import! (input-for-day-n) (get-module #../../advent_of_code_2024/kommon.knx))
+
+    ($define! replace-kwt-with-wat ($lambda (s)
+        (join* (join (slice (chars s) #0 #-3)) #wat)))
+    ($define! sequential-pairs ($lambda (l) ($match l
+        ((a b . etc) (withHead (list a b) (sequential-pairs etc)))
+        ((a . etc) (error #not-even))
+        (nil nil))))
+
+    ($define! macro-atom? ($lambda (x) (=? #! (first (chars x)))))
+    ($define! expand-!-macros ($lambda (tree) ($match tree 
+        ((#!params . rest) (map (sequential-pairs rest) ($lambda ((n t)) (list #param n t))))
+
+        // no pattern matched
+        (atom (atom? atom) (list atom))
+        (asdf (list (reduce (map asdf expand-!-macros) concat (list))))
+    )))
+    (write (replace-kwt-with-wat (first __args__)) (toString (first (expand-!-macros (load (first __args__)))))))

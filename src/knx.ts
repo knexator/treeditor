@@ -15,6 +15,7 @@ const main = Asdf.fromCutre(fileContents);
 console.time('eval time');
 const env = Env.standard();
 env.add('__file__', new Asdf(resolvedPath));
+env.add('__args__', new Asdf(process.argv.slice(3).map(s => new Asdf(s))));
 const result = myEval(main, env);
 console.timeEnd('eval time');
 if (result instanceof Asdf) {

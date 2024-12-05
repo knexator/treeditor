@@ -476,6 +476,11 @@ DEFAULT_ENV.add('filter-with-index', new BuiltInVau((params: Asdf[], env: Env) =
     }
     return new Asdf(results);
 }));
+DEFAULT_ENV.add('slice', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 3) throw new Error(`expected 3 params`);
+    const [list, first, last] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf(list.innerValues().slice(first.numberValue(), last.numberValue()));
+}));
 DEFAULT_ENV.add('reduce', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 3) throw new Error(`expected 3 params`);
     const [list, fn, initial_value] = params.map(p => myEval(p, env));

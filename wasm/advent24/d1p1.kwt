@@ -1,0 +1,8 @@
+(module
+    (import "env" "consoleLogNumber" (func $logI32 (param $thing i32)))
+    (import "env" "consoleLogNumber" (func $logF32 (param $thing f32)))
+    (func $main (export "main")
+        (call $logI32 (i32.const 123))
+    )
+    (memory $memory (export "memory") 1)
+)
