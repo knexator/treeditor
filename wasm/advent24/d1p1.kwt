@@ -19,15 +19,67 @@
         (call $logI32 (call $i32FromString (i32.const 1000) (i32.const 1005)))
 
         (!local.set ($rawNumbers_ptr $rawNumbers_len) 
-            (call $parseFileIntoMemory (i32.const 1000) (i32.add (local.get $fileSize) (i32.const 1000))))
+            (call $parseFileIntoMemory (i32.const 1000) (local.get $fileSize) (i32.add (local.get $fileSize) (i32.const 1000))))
 
         (call $logI32 (local.get $rawNumbers_ptr))
         (call $logI32 (local.get $rawNumbers_len))
+
+        (call $logI32 (i32.load (local.get $rawNumbers_ptr)))
+        (call $logI32 (i32.load (i32.add (local.get $rawNumbers_ptr) (i32.const 4))))
+        (call $logI32 (i32.load (i32.add (local.get $rawNumbers_ptr) (i32.const 8))))
+        (call $logI32 (i32.load (i32.add (local.get $rawNumbers_ptr) (i32.const 12))))
     )
 
-    (func $parseFileIntoMemory (!params $fileStart i32 $memoryStart i32) (result i32 i32)
-        (i32.const 1)
-        (i32.const 2)
+    (func $parseFileIntoMemory (!params $fileStart i32 $fileLen i32 $memoryStart i32) (result i32 i32)
+        (local $result_ptr i32)
+        (local $result_len i32)
+
+        (local $cur_digit i32)
+        (local $cur_number i32)
+
+        (local.set $result_ptr (local.get $memoryStart))
+        (local.set $result_len (i32.const 0))
+
+        (block $end_all
+            (loop $read_numbers
+                (local.set $cur_number (i32.const 0))
+                (block $end_number
+                    (loop $read_digits
+                        (local.set $cur_digit (i32.sub (i32.load8_u (local.get $fileStart)) (!ascii-i32 0)))
+                        (br_if $end_number (i32.or (i32.lt_s (local.get $cur_digit) (i32.const 0)) (i32.ge_s (local.get $cur_digit) (i32.const 10))))
+
+                        (local.set $cur_number (i32.mul (i32.const 10) (local.get $cur_number)))
+                        (local.set $cur_number (i32.add (local.get $cur_digit) (local.get $cur_number)))
+
+                        (local.set $fileStart (i32.add (i32.const 1) (local.get $fileStart)))
+                        (local.set $fileLen   (i32.sub (local.get $fileLen) (i32.const 1)))
+                        (br_if $end_all (i32.eqz (local.get $fileLen)))
+
+                        (br $read_digits)))
+                (i32.store (i32.add (local.get $result_ptr) (local.get $result_len)) (local.get $cur_number))
+                (local.set $result_len (i32.add (i32.const 4) (local.get $result_len)))
+
+
+                (block $end_space
+                    (loop $skip_space
+                        (local.set $cur_digit (i32.sub (i32.load8_u (local.get $fileStart)) (!ascii-i32 0)))
+                        (br_if $end_space  (i32.and (i32.ge_s (local.get $cur_digit) (i32.const 0)) (i32.lt_s (local.get $cur_digit) (i32.const 10))))
+
+                        (local.set $fileStart (i32.add (i32.const 1) (local.get $fileStart)))
+                        (local.set $fileLen   (i32.sub (local.get $fileLen) (i32.const 1)))
+
+                        (br_if $end_all (i32.eqz (local.get $fileLen)))
+                        (br $skip_space)))
+
+                (br $read_numbers)
+            )
+        )
+
+        (local.get $result_ptr)
+        (local.get $result_len)
+
+        (!comment i32.const 1)
+        (!comment i32.const 2)
         (!comment TODO))
 
     (func $i32FromString (!params $start i32 $end i32) (result i32)
