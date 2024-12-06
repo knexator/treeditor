@@ -1,11 +1,13 @@
 ($sequence
     ($import! (input-for-day-n) (get-module #kommon.knx))
     ($import! (peg/match) (get-module #../knx/peg.knx))
-    ($letrec ((raw-numbers (peg/match ($quote    // TODO: raw-pairs instead of raw-numbers
-                (any (sequence 
+    ($letrec ((raw-pairs (peg/match ($quote
+                (any (group (sequence 
                     (capture (some (set 0123456789)))
-                    (some (whitespace)))))
+                    (some (space))
+                    (capture (some (set 0123456789)))
+                    (newline)))))
                 (input-for-day-n #1)))
-            (first-list (sort (filter-with-index raw-numbers ($lambda (n k) (=? (% k #2) #0)))))
-            (second-list (sort (filter-with-index raw-numbers ($lambda (n k) (=? (% k #2) #1))))))
+            (first-list (sort (map raw-pairs ($lambda ((a b)) a))))
+            (second-list (sort (map raw-pairs ($lambda ((a b)) b)))))
         (reduce (map (zip first-list second-list) ($lambda ((a b)) (abs (- a b)))) + #0)))

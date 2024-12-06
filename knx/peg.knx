@@ -6,6 +6,10 @@
                                                     (#false #false)
                                                     ((inner-captures captured-chars remaining-chars)
                                                             (list (withTail inner-captures (join captured-chars)) captured-chars remaining-chars))))
+            ((#group inner-peg)                 ($match (helper-capturing inner-peg text-chars)
+                                                    (#false #false)
+                                                    ((inner-captures captured-chars remaining-chars)
+                                                            (list (list inner-captures) captured-chars remaining-chars))))
             
             (_ (atom? peg)                      ($let ((remaining-peg (chars peg)))
                                                     ($cond 
