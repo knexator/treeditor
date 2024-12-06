@@ -21,6 +21,8 @@
         
         ((#!comment . etc) (list))
         
+        ((#!ascii-i32 char) ($if (=? char #0) (list (list #i32.const #48)) (error #TODO:ascii)))
+        
         ((#!params . rest) (map (sequential-pairs rest) ($lambda ((n t)) (list #param n t))))
 
         // no pattern matched
