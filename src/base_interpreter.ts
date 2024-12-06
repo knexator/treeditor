@@ -453,6 +453,11 @@ DEFAULT_ENV.add('get-module', new BuiltInVau((params: Asdf[], env: Env) => {
     myEval(file_contents, new_env);
     return new_env;
 }));
+DEFAULT_ENV.add('reverse', new BuiltInVau((params: Asdf[], env: Env) => {
+    if (params.length !== 1) throw new Error(`expected 1 params`);
+    const [list] = params.map(p => asAsdf(myEval(p, env)));
+    return new Asdf(list.innerValues().slice().reverse());
+}));
 DEFAULT_ENV.add('map', new BuiltInVau((params: Asdf[], env: Env) => {
     if (params.length !== 2) throw new Error(`expected 2 params`);
     const [list, fn] = params.map(p => myEval(p, env));

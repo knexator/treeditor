@@ -6,22 +6,34 @@
     (!comment TODO: allow proper wasm comments)
     (!comment TODO: download the file at comptime)
     (func $main (export "main")
-        (local $fileSize i32)
+        (local $fileSize i32) (!comment Includes final \x00)
+
+        (local $rawNumbers_ptr i32)
+        (local $rawNumbers_len i32)
+
         (call $logI32 (i32.const 123))
+        (!comment memory at $fileSize + (998, 999) is (\n, \x00))
+        (!comment memory at $fileSize + 1000 is the next free spot)
         (local.set $fileSize (call $loadFile (i32.const 0) (i32.const 1000)))
 
-        (call $logI32 (i32.sub (i32.load8_u (i32.const 1000)) (i32.const 48)))
-        (call $logI32 (i32.sub (i32.load8_u (i32.const 1001)) (i32.const 48)))
-        (call $logI32 (i32.sub (i32.load8_u (i32.const 1002)) (i32.const 48)))
-
         (call $logI32 (call $i32FromString (i32.const 1000) (i32.const 1005)))
+
+        (!local.set ($rawNumbers_ptr $rawNumbers_len) 
+            (call $parseFileIntoMemory (i32.const 1000) (i32.add (local.get $fileSize) (i32.const 1000))))
+
+        (call $logI32 (local.get $rawNumbers_ptr))
+        (call $logI32 (local.get $rawNumbers_len))
     )
+
+    (func $parseFileIntoMemory (!params $fileStart i32 $memoryStart i32) (result i32 i32)
+        (i32.const 1)
+        (i32.const 2)
+        (!comment TODO))
 
     (func $i32FromString (!params $start i32 $end i32) (result i32)
         (local $result i32)
         (local.set $result (i32.const 0))
 
-        // bug here
         (block $done
             (loop $continue
                 (br_if $done (i32.eq (local.get $start) (local.get $end)))

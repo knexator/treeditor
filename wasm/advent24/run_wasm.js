@@ -12,7 +12,8 @@ const instance = await WebAssembly.instantiate(wasmModule, {
             const resolved_path = path.resolve(file_name);
             const file_contents = fs.readFileSync(resolved_path);
             wasm_memory.set(file_contents, ptr_dst);
-            return file_contents.length;
+            wasm_memory[ptr_dst + file_contents.length] = 0;
+            return file_contents.length + 1;
         }
     }
 });
