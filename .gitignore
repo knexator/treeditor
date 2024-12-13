@@ -26,5 +26,4 @@ dist-ssr
 *.wasm
 
 # my stuff
-src/sketches.knx.rs
 advent_of_code_2024/cache/

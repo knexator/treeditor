@@ -1,0 +1,36 @@
+// all funcs here assume the expr is already ANF
+($sequence
+    ($define! optimize ($lambda (expr)
+        ($match expr
+            
+            // Constant folding
+            ((#add (#lit t1 a) (#lit t1 b)) (=? t1 t2)      (list #lit t1 (+ a b)))
+            ((#mul (#lit t1 a) (#lit t1 b)) (=? t1 t2)      (list #lit t1 (* a b)))
+
+        )
+    ))
+
+    ($define! toWasm ($lambda (expr)
+        ((#add a b) ()) 
+    ))
+    ($define! toWasm-atomic ($lambda (expr)
+        ($match expr
+
+            ((#lit #i32 v) (list #i32.const v))
+            ((#lit #f32 v) (list #f32.const v))
+            ((#var #i32 n) (list #local.get n))
+            ((#var #f32 n) (list #local.get n))
+
+        ) 
+    ))
+
+    ($define! eval ($lambda (expr)
+        ($match expr
+
+            ((#add a b) (list #lit (+ (eval-atomic a) (eval-atomic b))))
+            ((#sub a b) (list #lit (- (eval-atomic a) (eval-atomic b))))
+            ((#mul a b) (list #lit (* (eval-atomic a) (eval-atomic b))))
+
+        )
+    ))
+)

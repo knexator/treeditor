@@ -1,0 +1,42 @@
+(block $main 
+    (
+        (file_name (Slice u8))
+        (arena Arena)
+    )
+    () // void
+    (
+    )
+)
+
+(block $readFile 
+    (
+        (file_name (Slice u8))
+        (arena Arena)
+    )
+    (
+        (file_contents (Slice u8))
+        (arena Arena)
+    )
+    (
+        (let ((result (Slice u8)) (arena Arena)) 
+            (alloc (Slice u8) 0))
+        
+        (let ((file_len i32))
+            (external-call readFile file_name result.ptr))
+        
+        (let ((result arena))
+            (realloc result file_len arena))
+
+    )
+)
+
+(type (Slice T) (struct
+    (ptr (Ptr T))
+    (len i32)
+))
+
+(block $parseFileIntoMemory 
+    ()
+    ()
+    ()
+)
